@@ -1,17 +1,20 @@
+import { supabase } from "../config/supabase.js";
 import { success, fail } from "../utils/response.js";
-import { supabase } from "../config/supabase.js"; // jika dibutuhkan di file ini
+import AppError from "../utils/AppError.js";
 
 export const getProfile = async (req, res) => {
     return success(
         res,
         'Profil user berhasil diambil.',
         {
-            id: req.user.id,
-            email: req.user.email,
-            name: req.user.user_metadata?.name,
-            username: req.user.user_metadata?.username,
-            avatar: req.user.user_metadata?.picture,
-            role: req.user.app_metadata?.role || 'user',
+            user: {
+                id: req.user.id,
+                email: req.user.email,
+                name: req.user.user_metadata?.name,
+                username: req.user.user_metadata?.username,
+                avatar: req.user.user_metadata?.picture,
+                role: req.user.app_metadata?.role || 'user',
+            }
         }
     );
 };
@@ -27,32 +30,28 @@ export const updateProfile = async (req, res) => {
         );
     }
 
-    try {
-        const updates = { data: {} };
-        if (name) updates.data.name = name;
-        if (avatar) updates.data.picture = avatar;
-        if (username) updates.data.username = username;
+    const updates = { data: {} };
+    if (name) updates.data.name = name;
+    if (avatar) updates.data.picture = avatar;
+    if (username) updates.data.username = username;
 
-        const { data, error } = await supabase.auth.updateUser(updates);
+    const { data, error } = await supabase.auth.updateUser(updates);
 
-        if (error) {
-            return fail(res, error.message, 400);
-        }
+    if (error) throw new AppError(error.message, 400);
 
-        return success(
-            res,
-            'Profil berhasil diperbarui.',
-            {
+    return success(
+        res,
+        'Profil berhasil diperbarui.',
+        {
+            user: {
                 id: data.user.id,
                 email: data.user.email,
                 name: data.user.user_metadata?.name,
                 avatar: data.user.user_metadata?.picture,
                 username: data.user.user_metadata?.username,
             }
-        );
-    } catch (err) {
-        return fail(res, err.message, 500);
-    }
+        }
+    );
 };
 
 export const changePassword = async (req, res) => {
@@ -66,33 +65,21 @@ export const changePassword = async (req, res) => {
         return fail(res, 'Password baru minimal 8 karakter.', 400);
     }
 
-    try {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: req.user.email,
-            password: old_password,
-        });
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: req.user.email,
+        password: old_password,
+    });
 
-        if (signInError) {
-            return fail(res, 'Password lama salah.', 401);
-        }
+    if (signInError) throw new AppError('Password lama salah.', 401);
 
-        const { data, error } = await supabase.auth.updateUser({
-            password: new_password,
-        });
+    const { error } = await supabase.auth.updateUser({
+        password: new_password,
+    });
 
-        if (error) {
-            return fail(res, error.message, 400);
-        }
+    if (error) throw new AppError(error.message, 400);
 
-        return success(
-            res,
-            'Password berhasil diubah. Silakan login kembali dengan password baru.',
-            {
-                id: data.user.id,
-                email: data.user.email,
-            }
-        );
-    } catch (err) {
-        return fail(res, err.message, 500);
-    }
+    return success(
+        res,
+        'Password berhasil diubah. Silakan login kembali dengan password baru.'
+    );
 };

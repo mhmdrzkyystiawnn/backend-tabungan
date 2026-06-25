@@ -6,6 +6,7 @@ import { supabase } from './config/supabase.js';
 import { requireAuth } from './middleware/auth.js';
 import authRoutes from "./routes/auth.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
+import savingsRoutes from "./routes/savings.routes.js";
 
 dotenv.config();
 
@@ -16,154 +17,10 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 
-app.get('/api/savings', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { search, keyword } = req.query;
-    const searchTerm = search || keyword;
-
-    let query = supabase
-      .from('savings_goals')
-      .select('*')
-      .eq('user_id', userId);
-
-    if (searchTerm) {
-      query = query.ilike('name', `%${searchTerm}%`);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json({
-      message: 'Data tabungan berhasil diambil.',
-      savings: data,
-      total: data.length,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Endpoint untuk membuat target tabungan baru
-app.post('/api/savings', requireAuth, async (req, res) => {
-  const { name, target_amount } = req.body;
-  
-  // Ambil ID user dari middleware requireAuth (req.user)
-  const userId = req.user.id; 
-
-  // Validasi input sederhana
-  if (!name || !target_amount) {
-    return res.status(400).json({ error: 'Nama tabungan dan target jumlah harus diisi.' });
-  }
-
-  try {
-    // Masukkan data ke tabel 'savings_goals' di Supabase
-    const { data, error } = await supabase
-      .from('savings_goals')
-      .insert([
-        { 
-          user_id: userId, // Pemilik tabungan
-          name: name, 
-          target_amount: Number(target_amount),
-          current_amount: 0 // Saldo awal otomatis 0
-        }
-      ])
-      .select(); // Mengembalikan data yang baru saja dimasukkan
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-
-    res.status(201).json({
-      message: 'Target tabungan berhasil dibuat!',
-      data: data[0],
-    });
-
-  } catch (err) {
-    res.status(500).json({ error: 'Terjadi kesalahan pada server.' });
-  }
-});
-
-app.get('/api/savings/:id', requireAuth, async (req, res) => {
-  const savingsId = req.params.id;
-
-  try {
-    const { data, error } = await supabase
-      .from('savings_goals')
-      .select('*')
-      .eq('id', savingsId)
-      .eq('user_id', req.user.id)
-      .single();
-
-    if (error || !data) {
-      return res.status(404).json({ error: 'Target tabungan tidak ditemukan.' });
-    }
-
-    res.json({
-      message: 'Detail target tabungan berhasil diambil.',
-      savings: data,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/savings/:id', requireAuth, async (req, res) => {
-  const savingsId = req.params.id;
-  const { name, target_amount } = req.body;
-
-  if (!name && target_amount === undefined) {
-    return res.status(400).json({ error: 'Minimal salah satu field name atau target_amount harus diisi.' });
-  }
-
-  try {
-    const updates = {};
-    if (name) updates.name = name;
-    if (target_amount !== undefined) updates.target_amount = Number(target_amount);
-
-    const { data, error } = await supabase
-      .from('savings_goals')
-      .update(updates)
-      .eq('id', savingsId)
-      .eq('user_id', req.user.id)
-      .select()
-      .single();
-
-    if (error || !data) {
-      return res.status(400).json({ error: error?.message || 'Gagal memperbarui target tabungan.' });
-    }
-
-    res.json({
-      message: 'Target tabungan berhasil diperbarui.',
-      savings: data,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/savings/:id', requireAuth, async (req, res) => {
-  const savingsId = req.params.id;
-
-  try {
-    const { error } = await supabase
-      .from('savings_goals')
-      .delete()
-      .eq('id', savingsId)
-      .eq('user_id', req.user.id);
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-
-    res.json({ message: 'Target tabungan berhasil dihapus.' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+app.use(
+    "/api/savings",
+    savingsRoutes
+);
 
 app.get('/api/transactions', requireAuth, async (req, res) => {
   try {
@@ -525,6 +382,9 @@ app.get('/api/statistics', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+import errorHandler from "./middleware/errorHandler.js";
+app.use(errorHandler);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server running on port ${port}`));

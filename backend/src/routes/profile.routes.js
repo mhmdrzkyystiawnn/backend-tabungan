@@ -5,11 +5,26 @@ import {
     changePassword
 } from "../controllers/profile.controller.js";
 import { requireAuth } from "../middleware/auth.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 
 const router = Router();
 
-router.get("/", requireAuth, getProfile);
-router.put("/", requireAuth, updateProfile);
-router.put("/password", requireAuth, changePassword);
+router.get(
+    "/", 
+    requireAuth, 
+    asyncHandler(getProfile)
+);
+
+router.put(
+    "/", 
+    requireAuth, 
+    asyncHandler(updateProfile)
+);
+
+router.put(
+    "/password", 
+    requireAuth, 
+    asyncHandler(changePassword)
+);
 
 export default router;

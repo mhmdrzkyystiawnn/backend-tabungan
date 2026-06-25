@@ -6,15 +6,29 @@ import {
     logout
 } from "../controllers/auth.controller.js";
 import { requireAuth } from "../middleware/auth.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 
 const router = Router();
 
-router.post("/register", register);
+router.post(
+    "/register", 
+    asyncHandler(register)
+);
 
-router.post("/login", login);
+router.post(
+    "/login", 
+    asyncHandler(login)
+);
 
-router.post("/refresh", refresh);
+router.post(
+    "/refresh", 
+    asyncHandler(refresh)
+);
 
-router.post("/logout", requireAuth, logout);
+router.post(
+    "/logout", 
+    requireAuth, 
+    asyncHandler(logout)
+);
 
 export default router;

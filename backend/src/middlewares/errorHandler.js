@@ -10,7 +10,7 @@ const errorHandler = (err, req, res, next) => {
 
         err.message || "Internal Server Error",
 
-        err.status || 500
+        err.statusCode || err.status || 500
 
     );
 

@@ -1,13 +1,11 @@
 import { supabase } from "../config/supabase.js";
-import { success, fail } from "../utils/response.js";
+import { success } from "../utils/response.js";
 import AppError from "../utils/AppError.js";
 
 export const register = async (req, res) => {
-    const { email, password } = req.body;
-
     const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: req.validated.body.email,
+        password: req.validated.body.password,
     });
 
     if (error) throw new AppError(error.message, 400);
@@ -21,11 +19,9 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-    const { email, password } = req.body;
-
     const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: req.validated.body.email,
+        password: req.validated.body.password,
     });
 
     if (error) throw new AppError(error.message, 401);
@@ -42,14 +38,8 @@ export const login = async (req, res) => {
 };
 
 export const refresh = async (req, res) => {
-    const { refresh_token } = req.body;
-
-    if (!refresh_token) {
-        return fail(res, "refresh_token wajib diisi.", 400);
-    }
-
     const { data, error } = await supabase.auth.refreshSession({
-        refresh_token,
+        refresh_token: req.validated.body.refresh_token,
     });
 
     if (error) throw new AppError(error.message, 400);

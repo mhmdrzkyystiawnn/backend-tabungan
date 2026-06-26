@@ -33,8 +33,7 @@ export const requireAuth = async (req, res, next) => {
     
     // 7. Set session agar supabase.auth.updateUser() bekerja
     await supabase.auth.setSession({
-      access_token: token,
-      refresh_token: token // Untuk API yang hanya butuh access_token
+      access_token: token
     });
 
     // 8. Lanjutkan ke proses berikutnya (Controller / Route)

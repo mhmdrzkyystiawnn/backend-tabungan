@@ -1,5 +1,5 @@
 import { supabase } from "../config/supabase.js";
-import { success, fail } from "../utils/response.js";
+import { success } from "../utils/response.js";
 import AppError from "../utils/AppError.js";
 
 export const getProfile = async (req, res) => {
@@ -20,20 +20,19 @@ export const getProfile = async (req, res) => {
 };
 
 export const updateProfile = async (req, res) => {
-    const { name, avatar, username } = req.body;
-
-    if (!name && !avatar && !username) {
-        return fail(
-            res,
-            'Minimal salah satu field (name, avatar, username) harus diisi.',
-            400
-        );
-    }
-
     const updates = { data: {} };
-    if (name) updates.data.name = name;
-    if (avatar) updates.data.picture = avatar;
-    if (username) updates.data.username = username;
+    
+    if (req.validated.body.name !== undefined) {
+        updates.data.name = req.validated.body.name;
+    }
+    
+    if (req.validated.body.avatar !== undefined) {
+        updates.data.picture = req.validated.body.avatar;
+    }
+    
+    if (req.validated.body.username !== undefined) {
+        updates.data.username = req.validated.body.username;
+    }
 
     const { data, error } = await supabase.auth.updateUser(updates);
 
@@ -55,25 +54,15 @@ export const updateProfile = async (req, res) => {
 };
 
 export const changePassword = async (req, res) => {
-    const { old_password, new_password } = req.body;
-
-    if (!old_password || !new_password) {
-        return fail(res, 'old_password dan new_password wajib diisi.', 400);
-    }
-
-    if (new_password.length < 8) {
-        return fail(res, 'Password baru minimal 8 karakter.', 400);
-    }
-
     const { error: signInError } = await supabase.auth.signInWithPassword({
         email: req.user.email,
-        password: old_password,
+        password: req.validated.body.old_password,
     });
 
     if (signInError) throw new AppError('Password lama salah.', 401);
 
     const { error } = await supabase.auth.updateUser({
-        password: new_password,
+        password: req.validated.body.new_password,
     });
 
     if (error) throw new AppError(error.message, 400);

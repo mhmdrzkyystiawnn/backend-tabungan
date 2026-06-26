@@ -1,130 +1,85 @@
 // controllers/savings.controller.js
 
-import { success, fail } from "../utils/response.js";
+import { success } from "../utils/response.js";
 import * as savingsService from "../services/savings.service.js";
+import * as transactionService from "../services/transaction.service.js";
 
 export const createSavings = async (req, res) => {
-
-    const { name, target_amount } = req.body;
-
-    if (!name || !target_amount) {
-
-        return fail(
-            res,
-            "Nama tabungan dan target jumlah harus diisi."
-        );
-
-    }
-
     const savings = await savingsService.createSavings(
         req.user.id,
-        req.body
+        req.validated.body
     );
 
     return success(
-
         res,
-
         "Target tabungan berhasil dibuat!",
-
-        {
-            savings
-        },
-
+        { savings },
         201
-
     );
-
 };
 
 export const getSavings = async (req, res) => {
-
-    const result =
-        await savingsService.getSavings(
-
-            req.user.id,
-
-            req.query
-
-        );
-
-    return success(
-
-        res,
-
-        "Data tabungan berhasil diambil.",
-
-        result
-
+    const result = await savingsService.getSavings(
+        req.user.id,
+        req.validated.query
     );
 
+    return success(
+        res,
+        "Data tabungan berhasil diambil.",
+        result
+    );
 };
 
 export const getSavingsById = async (req, res) => {
-
-    const savings =
-        await savingsService.getSavingsById(
-            req.user.id,
-            req.params.id
-        );
+    const savings = await savingsService.getSavingsById(
+        req.user.id,
+        req.validated.params.id
+    );
 
     return success(
         res,
         "Detail tabungan berhasil diambil.",
-        {
-            savings
-        }
+        { savings }
     );
-
 };
 
 export const updateSavings = async (req, res) => {
-
-    const { name, target_amount } = req.body;
-
-    if (
-        name === undefined &&
-        target_amount === undefined
-    ) {
-        return fail(
-            res,
-            "Minimal satu field harus diubah."
-        );
-    }
-
-    const savings =
-        await savingsService.updateSavings(
-            req.user.id,
-            req.params.id,
-            req.body
-        );
+    const savings = await savingsService.updateSavings(
+        req.user.id,
+        req.validated.params.id,
+        req.validated.body
+    );
 
     return success(
         res,
         "Target tabungan berhasil diperbarui.",
-        {
-            savings
-        }
+        { savings }
     );
-
 };
 
 export const deleteSavings = async (req, res) => {
-
     await savingsService.deleteSavings(
-
         req.user.id,
-
-        req.params.id
-
+        req.validated.params.id
     );
 
     return success(
-
         res,
-
         "Target tabungan berhasil dihapus."
+    );
+};
 
+export const getTransactionsBySavingsId = async (req, res) => {
+    const data = await transactionService.getTransactionsBySavingsId(
+        req.user.id,
+        req.validated.params.id,
+        req.validated.query
     );
 
+    return success(
+        res,
+        "Riwayat transaksi berhasil diambil.",
+        data
+    );
 };

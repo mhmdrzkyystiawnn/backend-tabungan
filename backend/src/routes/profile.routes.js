@@ -1,11 +1,16 @@
 import { Router } from "express";
+import validate from "../middlewares/validate.js";
 import {
     getProfile,
     updateProfile,
     changePassword
 } from "../controllers/profile.controller.js";
-import { requireAuth } from "../middleware/auth.js";
-import asyncHandler from "../middleware/asyncHandler.js";
+import {
+    updateProfileSchema,
+    changePasswordSchema
+} from "../validation/profile.validation.js";
+import { requireAuth } from "../middlewares/auth.js";
+import asyncHandler from "../middlewares/asyncHandler.js";
 
 const router = Router();
 
@@ -17,13 +22,15 @@ router.get(
 
 router.put(
     "/", 
-    requireAuth, 
+    requireAuth,
+    validate(updateProfileSchema),
     asyncHandler(updateProfile)
 );
 
 router.put(
     "/password", 
-    requireAuth, 
+    requireAuth,
+    validate(changePasswordSchema),
     asyncHandler(changePassword)
 );
 

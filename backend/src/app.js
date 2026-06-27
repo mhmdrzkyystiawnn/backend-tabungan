@@ -58,3 +58,5 @@ app.use(
 
 import errorHandler from "./middlewares/errorHandler.js";
 app.use(errorHandler);
+
+export default app;

@@ -225,18 +225,26 @@ export const uploadAvatar = async (req, res) => {
 };
 
 export const changePassword = async (req, res) => {
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    // 1. Verifikasi password lama dengan membuat session SEMENTARA
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: req.user.email,
         password: req.validated.body.old_password,
     });
 
     if (signInError) throw new AppError("Password lama salah.", 401);
 
-    const { error } = await supabase.auth.updateUser({
+    // 2. Gunakan req.supabase (dari middleware, dengan token user saat ini) untuk update password
+    const { error: updateError } = await req.supabase.auth.updateUser({
         password: req.validated.body.new_password,
     });
 
-    if (error) throw new AppError(error.message, 400);
+    // 3. SEGERA HAPUS session sementara yang dibuat di langkah 1 agar tidak jadi orphan token
+    if (signInData?.session?.access_token) {
+        const tempClient = createSupabaseClientWithToken(signInData.session.access_token);
+        await tempClient.auth.signOut();
+    }
+
+    if (updateError) throw new AppError(updateError.message, 400);
 
     return success(
         res,

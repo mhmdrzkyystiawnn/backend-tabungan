@@ -1,15 +1,15 @@
 import { z } from "zod";
 
 export const createTransactionSchema = z.object({
-
+    // PERBAIKAN BUG #4: Gunakan z.string().uuid() agar kompatibel penuh dengan Zod v4+
     savings_id: z
+        .string()
         .uuid("ID tabungan tidak valid."),
 
     type: z.enum(
         ["deposit", "withdrawal"],
         {
-            message:
-                "Type harus deposit atau withdrawal."
+            message: "Type harus deposit atau withdrawal."
         }
     ),
 
@@ -22,7 +22,6 @@ export const createTransactionSchema = z.object({
         .trim()
         .max(255)
         .optional()
-
 });
 
 export const transactionQuerySchema = z.object({

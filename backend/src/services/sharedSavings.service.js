@@ -173,12 +173,14 @@ const getMemberDisplayName = async (userId) => {
     try {
         const { data, error } = await supabase
             .from("profiles")
-            .select("name")
+            // PERBAIKAN SARAN #4: Ubah "name" menjadi "full_name"
+            .select("full_name")
             .eq("id", userId)
             .maybeSingle();
 
-        if (!error && data?.name) {
-            return data.name;
+        // Pastikan ceknya juga menggunakan .full_name
+        if (!error && data?.full_name) {
+            return data.full_name;
         }
     } catch {
         // Fallback to user id if profile lookup is unavailable.
@@ -418,40 +420,28 @@ export const uploadSharedSavingsImage = async (userId, sharedSavingsId, file) =>
     return normalizeSharedSavings(updated);
 };
 
-export const deleteSharedSavings = async (userId, sharedSavingsId) => {
-    const sharedSavings = await findSharedSavingsOrFail(sharedSavingsId, { allowDeleted: true });
+export const deleteSharedTransaction = async (userId, transactionId) => {
+    const transaction = await findTransactionOrFail(transactionId);
+    const sharedSavings = await findSharedSavingsOrFail(transaction.shared_savings_id);
+    
+    // Simpan hasil ke dalam variabel 'member'
     const member = await findMemberOrFail(userId, sharedSavings.id);
 
-    if (member.role !== "owner") {
-        throw new AppError("Hanya owner yang dapat menghapus tabungan bersama.", 403);
+    // PERBAIKAN PERINGATAN #9: Validasi kepemilikan transaksi
+    // Hanya ijinkan hapus JIKA user adalah pembuat transaksi ATAU user adalah owner
+    if (transaction.user_id !== userId && member.role !== "owner") {
+        throw new AppError("Anda tidak berhak menghapus transaksi ini.", 403);
     }
 
-    await Promise.allSettled([
-        supabase
-            .from(SHARED_TRANSACTIONS_TABLE)
-            .delete()
-            .eq("shared_savings_id", sharedSavings.id),
-        supabase
-            .from(SHARED_MEMBERS_TABLE)
-            .delete()
-            .eq("shared_savings_id", sharedSavings.id),
-    ]);
+    const { data, error } = await supabase.rpc("delete_shared_transaction_rpc", {
+        p_transaction_id: transactionId
+    });
 
-    const { error: savingsDeleteError } = await supabase
-        .from(SHARED_SAVINGS_TABLE)
-        .update({
-            status: "deleted",
-            invite_code: null
-        })
-        .eq("id", sharedSavings.id);
-
-    if (savingsDeleteError) {
-        throw new AppError(savingsDeleteError.message, 500);
+    if (error) {
+        throw new AppError(error.message, 400);
     }
 
-    return {
-        deleted: true
-    };
+    return data;
 };
 
 export const joinSharedSavings = async (userId, payload) => {

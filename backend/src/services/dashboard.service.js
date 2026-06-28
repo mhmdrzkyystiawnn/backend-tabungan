@@ -45,52 +45,19 @@ const normalizeMonthFilter = (month) => {
 };
 
 export const getDashboard = async (userId) => {
-    const [savingsResult, transactionResult] = await Promise.all([
-        supabase
-            .from(SAVINGS_TABLE)
-            .select("current_amount, target_amount")
-            .eq("user_id", userId),
-        supabase
-            .from(TRANSACTION_TABLE)
-            .select("type, amount")
-            .eq("user_id", userId)
-    ]);
+    // PERBAIKAN PERINGATAN #8: Agregasi langsung di tingkat database menggunakan RPC
+    // Jauh lebih cepat dan hemat memori dibandingkan me-load ribuan row ke Node.js
+    const { data, error } = await supabase.rpc("get_dashboard_summary", { 
+        p_user_id: userId 
+    });
 
-    const { data: savingsGoals, error: savingsError } = savingsResult;
-    const { data: transactions, error: txError } = transactionResult;
-
-    if (savingsError) {
-        throw new AppError(savingsError.message, 500);
+    if (error) {
+        throw new AppError(`Gagal mengambil summary dashboard: ${error.message}`, 500);
     }
 
-    if (txError) {
-        throw new AppError(txError.message, 500);
-    }
-
-    const totalSavings = savingsGoals.reduce((sum, goal) => sum + Number(goal.current_amount), 0);
-    const totalTarget = savingsGoals.reduce((sum, goal) => sum + Number(goal.target_amount), 0);
-    const completionRate = totalTarget > 0 ? Math.round((totalSavings / totalTarget) * 100) : 0;
-    const remainingTarget = Math.max(totalTarget - totalSavings, 0);
-
-    const totalTransactions = transactions.length;
-    const totalDeposit = transactions
-        .filter((tx) => tx.type === "deposit")
-        .reduce((sum, tx) => sum + Number(tx.amount), 0);
-    const totalWithdrawal = transactions
-        .filter((tx) => tx.type === "withdrawal")
-        .reduce((sum, tx) => sum + Number(tx.amount), 0);
-
-    return {
-        total_savings: totalSavings,
-        total_target: totalTarget,
-        progress: completionRate,
-        completion_rate: completionRate,
-        remaining_target: remainingTarget,
-        total_transactions: totalTransactions,
-        total_deposit: totalDeposit,
-        total_withdrawal: totalWithdrawal,
-        num_savings_goals: savingsGoals.length,
-    };
+    // Jika return dari RPC sudah berupa single object yang rapi,
+    // kita tinggal mengembalikannya langsung.
+    return data;
 };
 
 export const getStatistics = async (userId) => {

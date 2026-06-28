@@ -1,19 +1,10 @@
 import { fail } from "../utils/response.js";
 
 const errorHandler = (err, req, res, next) => {
-
-    console.error(err);
-
-    return fail(
-
-        res,
-
-        err.message || "Internal Server Error",
-
-        err.statusCode || err.status || 500
-
-    );
-
+  const isDev = process.env.NODE_ENV !== "production";
+  
+  if (isDev) console.error(err);
+  const message = err.isOperational ? err.message : "Terjadi kesalahan pada server.";
+  return fail(res, message, err.statusCode || 500);
 };
-
 export default errorHandler;

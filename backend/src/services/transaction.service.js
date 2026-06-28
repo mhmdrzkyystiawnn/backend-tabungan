@@ -122,6 +122,10 @@ export const getTransactions = async (userId, queryParams) => {
     }
 
     if (queryParams.savings_id) {
+        // PERBAIKAN PERINGATAN #6: Pastikan savings_id benar-benar valid dan milik user yang login
+        // sebelum melakukan query pencarian transaksi.
+        await findSavingsOrFail(userId, queryParams.savings_id);
+        
         query = query.eq("savings_id", queryParams.savings_id);
     }
 

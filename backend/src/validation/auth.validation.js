@@ -24,26 +24,20 @@ export const registerSchema = z.object({
         .trim()
         .email("Format email tidak valid."),
 
+    // ====== PERBAIKAN DI SINI ======
     password: z
         .string()
         .min(8, "Password minimal 8 karakter.")
+        .regex(/[A-Z]/, "Password harus mengandung setidaknya satu huruf kapital.")
+        .regex(/[0-9]/, "Password harus mengandung setidaknya satu angka.")
 });
 
+// loginSchema dan refreshSchema tetap sama seperti sebelumnya...
 export const loginSchema = z.object({
-
-    email: z
-        .string()
-        .trim()
-        .email("Format email tidak valid."),
-
-    password: z
-        .string()
-        .min(1, "Password wajib diisi.")
-
+    email: z.string().trim().email("Format email tidak valid."),
+    password: z.string().min(1, "Password wajib diisi.")
 });
 
 export const refreshSchema = z.object({
-    refresh_token: z
-        .string()
-        .min(1, "refresh_token wajib diisi.")
+    refresh_token: z.string().min(1, "refresh_token wajib diisi.")
 });

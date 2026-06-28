@@ -22,9 +22,10 @@ export const getStatistics = async (req, res) => {
 };
 
 export const getRecentTransactions = async (req, res) => {
+    // PERBAIKAN BUG #5: Menggunakan req.validated.query, bukan req.query mentah
     const recentTransactions = await dashboardService.getRecentTransactions(
         req.user.id,
-        req.query?.limit
+        req.validated.query?.limit
     );
 
     return success(
@@ -35,9 +36,10 @@ export const getRecentTransactions = async (req, res) => {
 };
 
 export const getMonthlySummary = async (req, res) => {
+    // PERBAIKAN BUG #6: Menggunakan req.validated.query agar data sudah aman dan terformat
     const monthlySummary = await dashboardService.getMonthlySummary(req.user.id, {
-        month: req.query?.month,
-        savings_id: req.query?.savings_id,
+        month: req.validated.query?.month,
+        savings_id: req.validated.query?.savings_id,
     });
 
     return success(

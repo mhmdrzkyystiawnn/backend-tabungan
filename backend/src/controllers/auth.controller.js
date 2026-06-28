@@ -116,13 +116,17 @@ export const refresh = async (req, res) => {
     );
 };
 
+// ====== PERBAIKAN ======
+
+// Option A: Menggunakan `req.supabase` yang sudah dibuat oleh middleware
 export const logout = async (req, res) => {
-    const { error } = await supabase.auth.signOut();
+    // Gunakan instance supabase yang membawa token milik user saat ini
+    const { error } = await req.supabase.auth.signOut(); 
 
     if (error) throw new AppError(error.message, 400);
 
     return success(
         res,
-        'Logout berhasil. Hapus token dari client.'
+        'Logout berhasil. Session di server telah dihapus.'
     );
 };

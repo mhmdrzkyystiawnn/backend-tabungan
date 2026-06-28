@@ -16,8 +16,9 @@ const validate = (
         if (!result.success) {
             return fail(
                 res,
-                result.error.issues[0].message,
-                400
+                "Validasi gagal.",
+                400,
+                result.error.issues.map(i => ({ field: i.path.join("."), message: i.message }))
             );
         }
 

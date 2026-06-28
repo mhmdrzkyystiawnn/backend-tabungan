@@ -173,12 +173,12 @@ export const getSavingsById = async (userId, savingsId) => {
 };
 
 export const updateSavings = async (userId, savingsId, payload) => {
-    await findSavingsOrFail(userId, savingsId);
+    // 1. Simpan hasil pencarian ke dalam variabel existingSavings
+    const existingSavings = await findSavingsOrFail(userId, savingsId);
 
     const { name, target_amount, image_url } = payload;
     const updates = {};
 
-    // ⑦ Trimming saat proses update data
     if (name !== undefined) {
         const cleanName = name.trim();
         if (!cleanName) {
@@ -192,6 +192,12 @@ export const updateSavings = async (userId, savingsId, payload) => {
         if (Number.isNaN(amount) || amount <= 0) {
             throw new AppError("Target tabungan tidak valid.", 400);
         }
+        
+        // 2. PERBAIKAN PERINGATAN #5: Validasi target_amount vs current_amount
+        if (amount < existingSavings.current_amount) {
+            throw new AppError(`Target tidak boleh lebih kecil dari saldo saat ini (${existingSavings.current_amount}).`, 400);
+        }
+        
         updates.target_amount = amount;
     }
 
@@ -271,6 +277,18 @@ export const uploadSavingsImage = async (userId, savingsId, file) => {
 export const deleteSavings = async (userId, savingsId) => {
     await findSavingsOrFail(userId, savingsId);
 
+    // 1. PERBAIKAN PERINGATAN #4: Hapus transaksi terkait terlebih dahulu (Manual Cascade)
+    const { error: txError } = await supabase
+        .from("transactions") // Pastikan nama tabel transaksi kamu benar "transactions"
+        .delete()
+        .eq("savings_id", savingsId)
+        .eq("user_id", userId); // Tambahan keamanan memastikan milik user yang sama
+
+    if (txError) {
+        throw new AppError(`Gagal menghapus transaksi terkait: ${txError.message}`, 500);
+    }
+
+    // 2. Setelah transaksi bersih, baru hapus tabungannya
     const { error } = await supabase
         .from(TABLE_NAME)
         .delete()

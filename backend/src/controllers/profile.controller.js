@@ -149,8 +149,13 @@ export const updateProfile = async (req, res) => {
     }
 
     if (Object.keys(updates).length > 0) {
-        await updateAuthProfileMetadata(req.user.id, updates, req.token);
         await syncProfileRecord(req.user.id, updates);
+
+        try {
+            await updateAuthProfileMetadata(req.user.id, updates, req.token);
+        } catch {
+            // Profile data is still saved even if auth metadata sync is unavailable.
+        }
     }
 
     const { data: profileData } = await supabase
@@ -230,19 +235,23 @@ export const changePassword = async (req, res) => {
 
     if (signInError) throw new AppError("Password lama salah.", 401);
 
-    // 2. Langsung revoke session sementara SEBELUM melanjutkan apapun.
-    //    Ini memastikan session orphan dihapus bahkan jika updateUser gagal sekalipun.
-    //    fire-and-forget dengan .catch() agar tidak memblok flow utama jika signOut error.
-    if (signInData?.session?.access_token) {
-        const tempClient = createSupabaseClientWithToken(signInData.session.access_token);
-        tempClient.auth.signOut().catch(() => {});
+    if (!signInData?.session?.access_token || !signInData?.session?.refresh_token) {
+        throw new AppError("Session untuk mengganti password tidak tersedia.", 400);
     }
 
-    // 3. Gunakan req.supabase (dari middleware, dengan token user saat ini) untuk update password.
-    //    req.supabase sudah membawa Bearer token asli user — Supabase tahu persis siapa yang diupdate.
-    const { error: updateError } = await req.supabase.auth.updateUser({
+    const tempClient = createSupabaseClientWithToken(signInData.session.access_token);
+    const { error: sessionError } = await tempClient.auth.setSession({
+        access_token: signInData.session.access_token,
+        refresh_token: signInData.session.refresh_token,
+    });
+
+    if (sessionError) throw new AppError(sessionError.message, 400);
+
+    const { error: updateError } = await tempClient.auth.updateUser({
         password: req.validated.body.new_password,
     });
+
+    await tempClient.auth.signOut().catch(() => {});
 
     if (updateError) throw new AppError(updateError.message, 400);
 

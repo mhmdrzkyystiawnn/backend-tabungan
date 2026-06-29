@@ -13,12 +13,6 @@ export const registerSchema = z.object({
         .max(30, "Username maksimal 30 karakter.")
         .optional(),
 
-    avatar: z
-        .string()
-        .trim()
-        .min(1, "Avatar tidak boleh kosong.")
-        .optional(),
-
     email: z
         .string()
         .trim()

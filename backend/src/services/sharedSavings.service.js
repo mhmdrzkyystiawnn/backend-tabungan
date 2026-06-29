@@ -143,19 +143,25 @@ const normalizeSharedSavings = (data) => ({
 });
 
 const applySharedTransaction = (currentAmount, type, amount) => {
+    const balance = Number(currentAmount) || 0;
+    const value = Number(amount) || 0;
+
     if (type === "deposit") {
-        return currentAmount + amount;
+        return balance + value;
     }
 
-    return currentAmount - amount;
+    return balance - value;
 };
 
 const rollbackSharedTransaction = (currentAmount, type, amount) => {
+    const balance = Number(currentAmount) || 0;
+    const value = Number(amount) || 0;
+
     if (type === "deposit") {
-        return currentAmount - amount;
+        return balance - value;
     }
 
-    return currentAmount + amount;
+    return balance + value;
 };
 
 const persistSharedSavingsBalance = async (sharedSavingsId, balance) => {
@@ -420,6 +426,37 @@ export const uploadSharedSavingsImage = async (userId, sharedSavingsId, file) =>
     return normalizeSharedSavings(updated);
 };
 
+export const deleteSharedSavings = async (userId, sharedSavingsId) => {
+    const sharedSavings = await findSharedSavingsOrFail(sharedSavingsId, { allowDeleted: true });
+    const member = await findMemberOrFail(userId, sharedSavings.id);
+
+    if (member.role !== "owner") {
+        throw new AppError("Hanya owner yang dapat menghapus tabungan bersama.", 403);
+    }
+
+    await Promise.allSettled([
+        supabase
+            .from(SHARED_TRANSACTIONS_TABLE)
+            .delete()
+            .eq("shared_savings_id", sharedSavings.id),
+        supabase
+            .from(SHARED_MEMBERS_TABLE)
+            .delete()
+            .eq("shared_savings_id", sharedSavings.id),
+    ]);
+
+    const { error } = await supabase
+        .from(SHARED_SAVINGS_TABLE)
+        .delete()
+        .eq("id", sharedSavings.id);
+
+    if (error) {
+        throw new AppError(error.message, 500);
+    }
+
+    return { deleted: true };
+};
+
 export const deleteSharedTransaction = async (userId, transactionId) => {
     const transaction = await findTransactionOrFail(transactionId);
     const sharedSavings = await findSharedSavingsOrFail(transaction.shared_savings_id);
@@ -433,15 +470,27 @@ export const deleteSharedTransaction = async (userId, transactionId) => {
         throw new AppError("Anda tidak berhak menghapus transaksi ini.", 403);
     }
 
-    const { data, error } = await supabase.rpc("delete_shared_transaction_rpc", {
-        p_transaction_id: transactionId
-    });
+    const newBalance = rollbackSharedTransaction(
+        sharedSavings.current_amount,
+        transaction.type,
+        transaction.amount
+    );
+
+    const { error } = await supabase
+        .from(SHARED_TRANSACTIONS_TABLE)
+        .delete()
+        .eq("id", transactionId);
 
     if (error) {
         throw new AppError(error.message, 400);
     }
 
-    return data;
+    await persistSharedSavingsBalance(sharedSavings.id, newBalance);
+
+    return {
+        deleted: true,
+        transaction
+    };
 };
 
 export const joinSharedSavings = async (userId, payload) => {
@@ -474,7 +523,7 @@ export const joinSharedSavings = async (userId, payload) => {
     }
 
     if (existingMember.data) {
-        throw new AppError("Anda sudah bergabung ke tabungan bersama ini.", 400);
+        throw new AppError("Anda sudah bergabung ke tabungan bersama ini.", 409);
     }
 
     const { data: member, error: memberError } = await supabase
@@ -532,19 +581,52 @@ export const createSharedTransaction = async (userId, payload) => {
     const sharedSavings = await findSharedSavingsOrFail(payload.shared_savings_id);
     await findMemberOrFail(userId, sharedSavings.id);
 
-    const { data, error } = await supabase.rpc("create_shared_transaction_rpc", {
-        p_user_id: userId,
-        p_shared_savings_id: sharedSavings.id,
-        p_type: payload.type,
-        p_amount: payload.amount,
-        p_description: payload.description ?? ""
-    });
+    const newBalance = applySharedTransaction(
+        sharedSavings.current_amount,
+        payload.type,
+        payload.amount
+    );
+
+    if (newBalance < 0) {
+        throw new AppError("Saldo tabungan bersama tidak boleh negatif.", 400);
+    }
+
+    const { data: transaction, error } = await supabase
+        .from(SHARED_TRANSACTIONS_TABLE)
+        .insert([
+            {
+                shared_savings_id: sharedSavings.id,
+                user_id: userId,
+                type: payload.type,
+                amount: payload.amount,
+                description: payload.description ?? ""
+            }
+        ])
+        .select()
+        .single();
 
     if (error) {
         throw new AppError(error.message, 400);
     }
 
-    return data;
+    try {
+        await persistSharedSavingsBalance(sharedSavings.id, newBalance);
+    } catch (error) {
+        await supabase
+            .from(SHARED_TRANSACTIONS_TABLE)
+            .delete()
+            .eq("id", transaction.id);
+
+        throw error;
+    }
+
+    return {
+        transaction,
+        shared_savings: {
+            ...sharedSavings,
+            current_amount: newBalance
+        }
+    };
 };
 
 export const updateSharedTransaction = async (userId, transactionId, payload) => {
@@ -558,19 +640,45 @@ export const updateSharedTransaction = async (userId, transactionId, payload) =>
         description: payload.description ?? oldTransaction.description
     };
 
-    const { data, error } = await supabase.rpc("update_shared_transaction_rpc", {
-        p_user_id: userId,
-        p_transaction_id: transactionId,
-        p_type: newTransaction.type,
-        p_amount: newTransaction.amount,
-        p_description: newTransaction.description
-    });
+    const balanceAfterRollback = rollbackSharedTransaction(
+        sharedSavings.current_amount,
+        oldTransaction.type,
+        oldTransaction.amount
+    );
+    const newBalance = applySharedTransaction(
+        balanceAfterRollback,
+        newTransaction.type,
+        newTransaction.amount
+    );
+
+    if (newBalance < 0) {
+        throw new AppError("Saldo tabungan bersama tidak boleh negatif.", 400);
+    }
+
+    const { data: transaction, error } = await supabase
+        .from(SHARED_TRANSACTIONS_TABLE)
+        .update({
+            type: newTransaction.type,
+            amount: newTransaction.amount,
+            description: newTransaction.description
+        })
+        .eq("id", transactionId)
+        .select()
+        .single();
 
     if (error) {
         throw new AppError(error.message, 400);
     }
 
-    return data;
+    await persistSharedSavingsBalance(sharedSavings.id, newBalance);
+
+    return {
+        transaction,
+        shared_savings: {
+            ...sharedSavings,
+            current_amount: newBalance
+        }
+    };
 };
 
 export const getSharedSavingsStatistics = async (userId, sharedSavingsId) => {

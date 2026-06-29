@@ -188,10 +188,12 @@ Layered Architecture`
         },
         RegisterRequest: {
           type: 'object',
-          required: ['email', 'password'],
+          required: ['name', 'email', 'password'],
           properties: {
+            name: { type: 'string', minLength: 2, example: 'Iki' },
+            username: { type: 'string', minLength: 3, maxLength: 30, example: 'iki' },
             email: { type: 'string', format: 'email', example: 'iki@gmail.com' },
-            password: { type: 'string', minLength: 8, example: 'password123' }
+            password: { type: 'string', minLength: 8, example: 'Password123' }
           }
         },
         LoginRequest: {

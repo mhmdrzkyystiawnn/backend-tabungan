@@ -32,7 +32,7 @@ const ensureProfile = async (userId, profileData = {}) => {
 };
 
 export const register = async (req, res) => {
-    const { email, password, name, username, avatar } = req.validated.body;
+    const { email, password, name, username } = req.validated.body;
 
     const { data, error } = await supabase.auth.signUp({
         email,
@@ -42,7 +42,6 @@ export const register = async (req, res) => {
                 full_name: name,
                 name,
                 username: username || null,
-                avatar_url: avatar || null,
             },
         },
     });
@@ -53,7 +52,6 @@ export const register = async (req, res) => {
         await ensureProfile(data.user.id, {
             full_name: name,
             username: username || null,
-            avatar_url: avatar || null,
         });
     }
 
@@ -65,7 +63,6 @@ export const register = async (req, res) => {
                 ? buildUserPayload(data.user, {
                     full_name: name,
                     username: username || null,
-                    avatar_url: avatar || null,
                 })
                 : null,
             session: data.session,

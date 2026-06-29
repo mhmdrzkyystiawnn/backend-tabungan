@@ -54,19 +54,25 @@ const findSavingsOrFail = async (userId, savingsId) => {
 };
 
 const rollbackTransaction = (currentAmount, transaction) => {
+    const balance = Number(currentAmount) || 0;
+    const amount = Number(transaction.amount) || 0;
+
     if (transaction.type === "deposit") {
-        return currentAmount - transaction.amount;
+        return balance - amount;
     }
 
-    return currentAmount + transaction.amount;
+    return balance + amount;
 };
 
 const applyTransaction = (currentAmount, transaction) => {
+    const balance = Number(currentAmount) || 0;
+    const amount = Number(transaction.amount) || 0;
+
     if (transaction.type === "deposit") {
-        return currentAmount + transaction.amount;
+        return balance + amount;
     }
 
-    return currentAmount - transaction.amount;
+    return balance - amount;
 };
 
 const persistSavingsBalance = async (userId, savingsId, balance) => {
@@ -87,20 +93,50 @@ const persistSavingsBalance = async (userId, savingsId, balance) => {
 
 export const createTransaction = async (userId, payload) => {
     const { savings_id, type, amount, description } = payload;
+    const savings = await findSavingsOrFail(userId, savings_id);
+    const newBalance = applyTransaction(savings.current_amount, { type, amount });
 
-    const { data, error } = await supabase.rpc("create_transaction_rpc", {
-        p_user_id: userId,
-        p_savings_id: savings_id,
-        p_type: type,
-        p_amount: amount,
-        p_description: description ?? ""
-    });
+    if (newBalance < 0) {
+        throw new AppError("Saldo tabungan tidak boleh negatif.", 400);
+    }
+
+    const { data: transaction, error } = await supabase
+        .from(TABLE_NAME)
+        .insert([
+            {
+                user_id: userId,
+                savings_id,
+                type,
+                amount,
+                description: description ?? ""
+            }
+        ])
+        .select()
+        .single();
 
     if (error) {
         throw new AppError(error.message, 400);
     }
 
-    return data;
+    try {
+        await persistSavingsBalance(userId, savings_id, newBalance);
+    } catch (error) {
+        await supabase
+            .from(TABLE_NAME)
+            .delete()
+            .eq("id", transaction.id)
+            .eq("user_id", userId);
+
+        throw error;
+    }
+
+    return {
+        transaction,
+        savings: {
+            ...savings,
+            current_amount: newBalance
+        }
+    };
 };
 
 export const getTransactions = async (userId, queryParams) => {
@@ -160,6 +196,7 @@ export const getTransactionById = async (userId, transactionId) => {
 
 export const updateTransaction = async (userId, transactionId, payload) => {
     const oldTransaction = await findTransactionOrFail(userId, transactionId);
+    const savings = await findSavingsOrFail(userId, oldTransaction.savings_id);
 
     const newTransaction = {
         type: payload.type ?? oldTransaction.type,
@@ -167,32 +204,61 @@ export const updateTransaction = async (userId, transactionId, payload) => {
         description: payload.description ?? oldTransaction.description
     };
 
-    const { data, error } = await supabase.rpc("update_transaction_rpc", {
-        p_user_id: userId,
-        p_transaction_id: transactionId,
-        p_type: newTransaction.type,
-        p_amount: newTransaction.amount,
-        p_description: newTransaction.description
-    });
+    const balanceAfterRollback = rollbackTransaction(savings.current_amount, oldTransaction);
+    const newBalance = applyTransaction(balanceAfterRollback, newTransaction);
+
+    if (newBalance < 0) {
+        throw new AppError("Saldo tabungan tidak boleh negatif.", 400);
+    }
+
+    const { data: transaction, error } = await supabase
+        .from(TABLE_NAME)
+        .update({
+            type: newTransaction.type,
+            amount: newTransaction.amount,
+            description: newTransaction.description
+        })
+        .eq("id", transactionId)
+        .eq("user_id", userId)
+        .select()
+        .single();
 
     if (error) {
         throw new AppError(error.message, 500);
     }
 
-    return data;
+    await persistSavingsBalance(userId, oldTransaction.savings_id, newBalance);
+
+    return {
+        transaction,
+        savings: {
+            ...savings,
+            current_amount: newBalance
+        }
+    };
 };
 
 export const deleteTransaction = async (userId, transactionId) => {
-    const { data, error } = await supabase.rpc("delete_transaction_rpc", {
-        p_user_id: userId,
-        p_transaction_id: transactionId
-    });
+    const transaction = await findTransactionOrFail(userId, transactionId);
+    const savings = await findSavingsOrFail(userId, transaction.savings_id);
+    const newBalance = rollbackTransaction(savings.current_amount, transaction);
+
+    const { error } = await supabase
+        .from(TABLE_NAME)
+        .delete()
+        .eq("id", transactionId)
+        .eq("user_id", userId);
 
     if (error) {
         throw new AppError(error.message, 500);
     }
 
-    return data;
+    await persistSavingsBalance(userId, transaction.savings_id, newBalance);
+
+    return {
+        deleted: true,
+        transaction
+    };
 };
 
 export const getTransactionsBySavingsId = async (userId, savingsId, queryParams) => {

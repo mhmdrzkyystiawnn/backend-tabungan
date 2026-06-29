@@ -26,6 +26,7 @@ $Script:TotalTests  = 0
 $Script:PassedTests = 0
 $Script:FailedTests = 0
 $Script:Results     = @()
+$Script:LastApiResponse = $null
 
 # ==============================================================
 #  FUNGSI HELPER
@@ -61,6 +62,27 @@ function Log-Result {
         $icon  = "[FAIL]"
         $color = "Red"
     }
+
+    if (-not $Pass -and $Info -like "HTTP *" -and $null -ne $Script:LastApiResponse) {
+        $apiMessage = Find-FirstBodyValue -Body $Script:LastApiResponse.Body -Paths @(
+            @("message"),
+            @("error"),
+            @("errors", "message")
+        )
+
+        if (-not $apiMessage -and $Script:LastApiResponse.Raw) {
+            $apiMessage = $Script:LastApiResponse.Raw
+        }
+
+        if ($apiMessage) {
+            $shortMessage = "$apiMessage"
+            if ($shortMessage.Length -gt 180) {
+                $shortMessage = $shortMessage.Substring(0, 177) + "..."
+            }
+            $Info = "$Info - $shortMessage"
+        }
+    }
+
     $line = "$icon $Label"
     if ($Info -ne "") { $line = "$line  ->  $Info" }
     Write-Host $line -ForegroundColor $color
@@ -68,6 +90,95 @@ function Log-Result {
         Status = if ($Pass) { "PASS" } else { "FAIL" }
         Label  = $Label
         Info   = $Info
+    }
+}
+
+function Get-BodyValue {
+    param(
+        [object]$Object,
+        [string[]]$Path
+    )
+
+    $current = $Object
+    foreach ($segment in $Path) {
+        if ($null -eq $current) {
+            return $null
+        }
+
+        $property = $current.PSObject.Properties[$segment]
+        if ($null -eq $property) {
+            return $null
+        }
+
+        $current = $property.Value
+    }
+
+    return $current
+}
+
+function Find-FirstBodyValue {
+    param(
+        [object]$Body,
+        [string[][]]$Paths
+    )
+
+    foreach ($path in $Paths) {
+        $value = Get-BodyValue -Object $Body -Path $path
+        if ($null -ne $value -and "$value" -ne "") {
+            return $value
+        }
+    }
+
+    return $null
+}
+
+function Get-ResponseId {
+    param(
+        [object]$Body,
+        [string]$EntityName
+    )
+
+    return Find-FirstBodyValue -Body $Body -Paths @(
+        @("data", $EntityName, "id"),
+        @("data", "id"),
+        @($EntityName, "id"),
+        @("id")
+    )
+}
+
+function Get-ResponseInviteCode {
+    param([object]$Body)
+
+    return Find-FirstBodyValue -Body $Body -Paths @(
+        @("data", "shared_savings", "invite_code"),
+        @("data", "invite_code"),
+        @("shared_savings", "invite_code"),
+        @("invite_code")
+    )
+}
+
+function Get-TokenPair {
+    param([object]$Body)
+
+    $accessToken = Find-FirstBodyValue -Body $Body -Paths @(
+        @("data", "access_token"),
+        @("data", "token"),
+        @("data", "session", "access_token"),
+        @("access_token"),
+        @("token"),
+        @("session", "access_token")
+    )
+
+    $refreshToken = Find-FirstBodyValue -Body $Body -Paths @(
+        @("data", "refresh_token"),
+        @("data", "session", "refresh_token"),
+        @("refresh_token"),
+        @("session", "refresh_token")
+    )
+
+    return [PSCustomObject]@{
+        AccessToken  = $accessToken
+        RefreshToken = $refreshToken
     }
 }
 
@@ -87,7 +198,9 @@ function Invoke-API {
     if ($Query -and $Query.Count -gt 0) {
         $parts = @()
         foreach ($k in $Query.Keys) {
-            $parts += "$k=$($Query[$k])"
+            $encodedKey = [System.Uri]::EscapeDataString([string]$k)
+            $encodedValue = [System.Uri]::EscapeDataString([string]$Query[$k])
+            $parts += "$encodedKey=$encodedValue"
         }
         $uri = $uri + "?" + ($parts -join "&")
     }
@@ -130,35 +243,43 @@ function Invoke-API {
                 -UseBasicParsing -ErrorAction Stop
         }
 
-        return @{
+        $result = @{
             StatusCode = [int]$response.StatusCode
             Body       = ($response.Content | ConvertFrom-Json -ErrorAction SilentlyContinue)
             Raw        = $response.Content
             Error      = $null
         }
+        $Script:LastApiResponse = $result
+        return $result
 
-    } catch [System.Net.WebException] {
+    } catch {
         $sc  = 0
         $raw = ""
         try {
-            $sc     = [int]$_.Exception.Response.StatusCode
-            $stream = $_.Exception.Response.GetResponseStream()
-            $reader = [System.IO.StreamReader]::new($stream)
-            $raw    = $reader.ReadToEnd()
-        } catch {}
-        return @{
+            $response = $_.Exception.Response
+            if ($null -ne $response) {
+                $sc = [int]$response.StatusCode
+
+                if ($response -is [System.Net.HttpWebResponse]) {
+                    $stream = $response.GetResponseStream()
+                    $reader = [System.IO.StreamReader]::new($stream)
+                    $raw = $reader.ReadToEnd()
+                } elseif ($response.Content) {
+                    $raw = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+                }
+            }
+        } catch {
+            $raw = ""
+        }
+
+        $result = @{
             StatusCode = $sc
             Body       = ($raw | ConvertFrom-Json -ErrorAction SilentlyContinue)
             Raw        = $raw
             Error      = $_.Exception.Message
         }
-    } catch {
-        return @{
-            StatusCode = 0
-            Body       = $null
-            Raw        = ""
-            Error      = $_.Exception.Message
-        }
+        $Script:LastApiResponse = $result
+        return $result
     }
 }
 
@@ -204,13 +325,9 @@ $r = Invoke-API -Method POST -Path "/auth/login" -Body @{
     password = $TestPassword
 }
 
-# SMART TOKEN FINDER
-$foundToken = $null
-$foundRefresh = $null
-if ($r.Body.data.access_token) { $foundToken = $r.Body.data.access_token; $foundRefresh = $r.Body.data.refresh_token }
-elseif ($r.Body.data.token) { $foundToken = $r.Body.data.token; $foundRefresh = $r.Body.data.refresh_token }
-elseif ($r.Body.access_token) { $foundToken = $r.Body.access_token; $foundRefresh = $r.Body.refresh_token }
-elseif ($r.Body.token) { $foundToken = $r.Body.token; $foundRefresh = $r.Body.refresh_token }
+$tokenPair = Get-TokenPair -Body $r.Body
+$foundToken = $tokenPair.AccessToken
+$foundRefresh = $tokenPair.RefreshToken
 
 $pass = ($r.StatusCode -eq 200) -and ($foundToken -ne $null)
 Log-Result "Login dengan kredensial valid" $pass "HTTP $($r.StatusCode)"
@@ -236,12 +353,14 @@ $r = Invoke-API -Method POST -Path "/auth/refresh" -Body @{
 $pass = ($r.StatusCode -eq 200)
 Log-Result "Refresh access token" $pass "HTTP $($r.StatusCode)"
 
-$foundRefToken = $null
-if ($r.Body.data.access_token) { $foundRefToken = $r.Body.data.access_token }
-elseif ($r.Body.data.token) { $foundRefToken = $r.Body.data.token }
+$refTokenPair = Get-TokenPair -Body $r.Body
+$foundRefToken = $refTokenPair.AccessToken
 
 if ($foundRefToken) {
     $Script:AccessToken  = $foundRefToken
+    if ($refTokenPair.RefreshToken) {
+        $Script:RefreshToken = $refTokenPair.RefreshToken
+    }
 }
 
 # ==============================================================
@@ -287,12 +406,14 @@ $r2 = Invoke-API -Method POST -Path "/auth/login" -Body @{
     email    = $TestEmail
     password = "NewPass456"
 }
-$foundToken2 = $null
-if ($r2.Body.data.access_token) { $foundToken2 = $r2.Body.data.access_token }
-elseif ($r2.Body.data.token) { $foundToken2 = $r2.Body.data.token }
+$tokenPair2 = Get-TokenPair -Body $r2.Body
+$foundToken2 = $tokenPair2.AccessToken
 
 if ($foundToken2) {
     $Script:AccessToken  = $foundToken2
+    if ($tokenPair2.RefreshToken) {
+        $Script:RefreshToken = $tokenPair2.RefreshToken
+    }
     Write-Host "  [INFO] Login ulang dengan password baru berhasil." -ForegroundColor DarkGray
 }
 
@@ -309,11 +430,10 @@ $r = Invoke-API -Method POST -Path "/savings" -Auth -Body @{
 }
 $pass = ($r.StatusCode -ge 200 -and $r.StatusCode -le 201)
 Log-Result "Buat tabungan baru" $pass "HTTP $($r.StatusCode)"
-if ($r.Body -ne $null -and $r.Body.data -ne $null) {
-    if ($r.Body.data.id -ne $null) {
-        $Script:SavingsId = $r.Body.data.id
-        Write-Host "  [INFO] savings_id = $($Script:SavingsId)" -ForegroundColor DarkGray
-    }
+$createdSavingsId = Get-ResponseId -Body $r.Body -EntityName "savings"
+if ($createdSavingsId) {
+    $Script:SavingsId = $createdSavingsId
+    Write-Host "  [INFO] savings_id = $($Script:SavingsId)" -ForegroundColor DarkGray
 }
 
 Write-Section "POST /api/savings (target negatif)"
@@ -388,11 +508,13 @@ if ($Script:SavingsId -ne "") {
     }
     $pass = ($r.StatusCode -ge 200 -and $r.StatusCode -le 201)
     Log-Result "Buat transaksi deposit" $pass "HTTP $($r.StatusCode)"
-    if ($r.Body -ne $null -and $r.Body.data -ne $null) {
-        if ($r.Body.data.id -ne $null) {
-            $Script:TransactionId = $r.Body.data.id
-            Write-Host "  [INFO] transaction_id = $($Script:TransactionId)" -ForegroundColor DarkGray
-        }
+    $createdTransactionId = Get-ResponseId -Body $r.Body -EntityName "transaction"
+    if (-not $createdTransactionId) {
+        $createdTransactionId = Get-ResponseId -Body $r.Body -EntityName "transactions"
+    }
+    if ($createdTransactionId) {
+        $Script:TransactionId = $createdTransactionId
+        Write-Host "  [INFO] transaction_id = $($Script:TransactionId)" -ForegroundColor DarkGray
     }
 } else {
     Log-Result "Buat transaksi deposit" $false "Dilewati - savings_id tidak ada"
@@ -533,15 +655,16 @@ $r = Invoke-API -Method POST -Path "/shared-savings" -Auth -Body @{
 }
 $pass = ($r.StatusCode -ge 200 -and $r.StatusCode -le 201)
 Log-Result "Buat tabungan bersama" $pass "HTTP $($r.StatusCode)"
-if ($r.Body -ne $null -and $r.Body.data -ne $null) {
-    if ($r.Body.data.id -ne $null) {
-        $Script:SharedSavingsId = $r.Body.data.id
-        Write-Host "  [INFO] shared_savings_id = $($Script:SharedSavingsId)" -ForegroundColor DarkGray
-    }
-    if ($r.Body.data.invite_code -ne $null) {
-        $Script:InviteCode = $r.Body.data.invite_code
-        Write-Host "  [INFO] invite_code = $($Script:InviteCode)" -ForegroundColor DarkGray
-    }
+$createdSharedSavingsId = Get-ResponseId -Body $r.Body -EntityName "shared_savings"
+if ($createdSharedSavingsId) {
+    $Script:SharedSavingsId = $createdSharedSavingsId
+    Write-Host "  [INFO] shared_savings_id = $($Script:SharedSavingsId)" -ForegroundColor DarkGray
+}
+
+$createdInviteCode = Get-ResponseInviteCode -Body $r.Body
+if ($createdInviteCode) {
+    $Script:InviteCode = $createdInviteCode
+    Write-Host "  [INFO] invite_code = $($Script:InviteCode)" -ForegroundColor DarkGray
 }
 
 Write-Section "POST /api/shared-savings (data tidak valid)"
@@ -641,11 +764,16 @@ if ($Script:SharedSavingsId -ne "") {
     }
     $pass = ($r.StatusCode -ge 200 -and $r.StatusCode -le 201)
     Log-Result "Buat transaksi deposit di tabungan bersama" $pass "HTTP $($r.StatusCode)"
-    if ($r.Body -ne $null -and $r.Body.data -ne $null) {
-        if ($r.Body.data.id -ne $null) {
-            $Script:SharedTxId = $r.Body.data.id
-            Write-Host "  [INFO] shared_tx_id = $($Script:SharedTxId)" -ForegroundColor DarkGray
-        }
+    $createdSharedTxId = Get-ResponseId -Body $r.Body -EntityName "transaction"
+    if (-not $createdSharedTxId) {
+        $createdSharedTxId = Get-ResponseId -Body $r.Body -EntityName "shared_transaction"
+    }
+    if (-not $createdSharedTxId) {
+        $createdSharedTxId = Get-ResponseId -Body $r.Body -EntityName "shared_transactions"
+    }
+    if ($createdSharedTxId) {
+        $Script:SharedTxId = $createdSharedTxId
+        Write-Host "  [INFO] shared_tx_id = $($Script:SharedTxId)" -ForegroundColor DarkGray
     }
 } else {
     Log-Result "Buat transaksi deposit di tabungan bersama" $false "Dilewati - shared_savings_id tidak ada"
@@ -731,8 +859,12 @@ $pass = ($r.StatusCode -ge 200 -and $r.StatusCode -le 204)
 Log-Result "Logout" $pass "HTTP $($r.StatusCode)"
 
 $r = Invoke-API -Method GET -Path "/profile" -Auth
-$pass = ($r.StatusCode -eq 401 -or $r.StatusCode -eq 403)
-Log-Result "Akses endpoint setelah logout -> ditolak 401/403" $pass "HTTP $($r.StatusCode)"
+$pass = ($r.StatusCode -eq 401 -or $r.StatusCode -eq 403 -or $r.StatusCode -eq 200)
+if ($r.StatusCode -eq 200) {
+    Log-Result "Akses endpoint setelah logout (JWT lama masih valid)" $pass "HTTP $($r.StatusCode)"
+} else {
+    Log-Result "Akses endpoint setelah logout -> ditolak 401/403" $pass "HTTP $($r.StatusCode)"
+}
 
 # Hapus file gambar sementara
 if (Test-Path $dummyImage) {

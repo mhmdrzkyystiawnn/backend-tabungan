@@ -227,12 +227,24 @@ Mendaftarkan pengguna baru. Supabase akan mengirimkan email verifikasi ke alamat
 
 | Field | Tipe | Wajib | Aturan |
 |---|---|---|---|
+<<<<<<< HEAD
+=======
+| `name` | `string` | Ya | Minimal 2 karakter |
+| `username` | `string` | Tidak | Minimal 3 karakter, maksimal 30 karakter |
+| `avatar` | `string` | Tidak | URL gambar valid (opsional) |
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 | `email` | `string` | Ya | Format email valid |
 | `password` | `string` | Ya | Minimal 8 karakter |
 
 **Contoh Request:**
 ```json
 {
+<<<<<<< HEAD
+=======
+  "name": "John Doe",
+  "username": "johndoe",
+  "avatar": "https://example.com/avatar.jpg",
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
   "email": "user@example.com",
   "password": "password123"
 }
@@ -247,15 +259,25 @@ Mendaftarkan pengguna baru. Supabase akan mengirimkan email verifikasi ke alamat
     "user": {
       "id": "uuid-user",
       "email": "user@example.com",
+<<<<<<< HEAD
       "created_at": "2025-01-01T00:00:00Z",
       "..."
+=======
+      "name": "John Doe",
+      "username": "johndoe",
+      "avatar": null
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
     },
     "session": null
   }
 }
 ```
 
+<<<<<<< HEAD
 > Nilai `session` akan `null` karena akun belum diverifikasi via email. Setelah verifikasi, pengguna dapat login.
+=======
+> Response register berbeda dari login karena register hanya membuat akun dan mengembalikan profil pengguna beserta `session` (yang bisa `null` tergantung konfigurasi Supabase). Login akan mengembalikan token akses dan refresh token.
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 
 **Response Error `400`:**
 ```json
@@ -299,6 +321,7 @@ Mengautentikasi pengguna dan mengembalikan access token serta refresh token.
     "user": {
       "id": "uuid-user",
       "email": "user@example.com",
+<<<<<<< HEAD
       "user_metadata": {
         "name": "John Doe",
         "username": "johndoe",
@@ -307,11 +330,21 @@ Mengautentikasi pengguna dan mengembalikan access token serta refresh token.
       "app_metadata": {
         "role": "user"
       }
+=======
+      "name": "John Doe",
+      "username": "johndoe",
+      "avatar": "https://.../avatar.jpg"
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
     }
   }
 }
 ```
 
+<<<<<<< HEAD
+=======
+> Setelah login berhasil, client sebaiknya menyimpan `token` dan `refresh_token` untuk dipakai di endpoint lain yang memerlukan autentikasi.
+
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 **Response Error `401`:**
 ```json
 {
@@ -461,12 +494,49 @@ Memperbarui informasi profil pengguna. Setidaknya satu field harus dikirimkan.
 ```json
 {
   "success": false,
+<<<<<<< HEAD
   "message": "Minimal salah satu field harus diisi."
+=======
+  "message": "Minimal salah satu field harus diisi.",
+  "errors": null
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 }
 ```
 
 ---
 
+<<<<<<< HEAD
+=======
+#### `POST /api/profile/avatar`
+
+Mengunggah foto profil pengguna melalui multipart form-data. File yang dikirim harus berupa gambar.
+
+**Request Body:**
+- Field `avatar` berupa file gambar (`multipart/form-data`)
+
+**Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Foto profil berhasil diunggah.",
+  "data": {
+    "user": {
+      "id": "uuid-user",
+      "email": "user@example.com",
+      "name": "John Doe",
+      "username": "johndoe",
+      "avatar": "https://.../avatars/uuid-user/....jpg",
+      "role": "user"
+    }
+  }
+}
+```
+
+> Saat avatar baru diunggah, file avatar lama di bucket storage akan otomatis dihapus.
+
+---
+
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 #### `PUT /api/profile/password`
 
 Mengubah password pengguna. Password lama diverifikasi terlebih dahulu sebelum diganti.
@@ -523,6 +593,10 @@ Membuat target tabungan pribadi baru. Saldo awal (`current_amount`) otomatis dis
 |---|---|---|---|
 | `name` | `string` | Ya | Minimal 1 karakter (setelah trim) |
 | `target_amount` | `number` | Ya | Harus positif (lebih dari 0) |
+<<<<<<< HEAD
+=======
+| `image_url` | `string` | Tidak | URL gambar valid (opsional) |
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 
 **Contoh Request:**
 ```json
@@ -544,6 +618,10 @@ Membuat target tabungan pribadi baru. Saldo awal (`current_amount`) otomatis dis
       "name": "Dana Liburan Bali",
       "target_amount": 5000000,
       "current_amount": 0,
+<<<<<<< HEAD
+=======
+      "image_url": null,
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
       "created_at": "2025-06-27T10:00:00Z",
       "updated_at": "2025-06-27T10:00:00Z"
     }
@@ -691,6 +769,40 @@ Memperbarui nama atau target amount tabungan. Setidaknya satu field harus dikiri
 
 ---
 
+<<<<<<< HEAD
+=======
+#### `POST /api/savings/:id/image`
+
+Mengunggah gambar untuk target tabungan pribadi. File yang dikirim harus berupa gambar.
+
+**Request Body:**
+- Field `image` berupa file gambar (`multipart/form-data`)
+
+**Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Gambar tabungan berhasil diunggah.",
+  "data": {
+    "savings": {
+      "id": "uuid-savings",
+      "user_id": "uuid-user",
+      "name": "Dana Liburan Bali",
+      "target_amount": 5000000,
+      "current_amount": 0,
+      "image_url": "https://.../savings-images/...jpg",
+      "created_at": "2025-06-27T10:00:00Z",
+      "updated_at": "2025-06-27T10:00:00Z"
+    }
+  }
+}
+```
+
+> Saat gambar baru diunggah, file lama di bucket storage akan otomatis dihapus.
+
+---
+
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 #### `DELETE /api/savings/:id`
 
 Menghapus target tabungan berdasarkan UUID.
@@ -1139,6 +1251,10 @@ Membuat grup tabungan bersama baru. Pembuat otomatis menjadi `owner` dan `invite
 | `name` | `string` | Ya | Minimal 1 karakter |
 | `description` | `string` | Tidak | Maksimal 255 karakter |
 | `target_amount` | `number` | Ya | Harus positif |
+<<<<<<< HEAD
+=======
+| `image_url` | `string` | Tidak | URL gambar valid (opsional) |
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 
 **Contoh Request:**
 ```json
@@ -1162,6 +1278,10 @@ Membuat grup tabungan bersama baru. Pembuat otomatis menjadi `owner` dan `invite
       "description": "Tabungan bersama untuk liburan akhir tahun",
       "target_amount": 20000000,
       "current_amount": 0,
+<<<<<<< HEAD
+=======
+      "image_url": null,
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
       "invite_code": "A3F9B2C1",
       "status": "active",
       "created_at": "2025-06-27T10:00:00Z"
@@ -1329,6 +1449,11 @@ Urutan penghapusan:
 }
 ```
 
+<<<<<<< HEAD
+=======
+> Saat grup dihapus, status grup diubah menjadi `deleted` dan `invite_code` di-null-kan, sehingga kode undangan tidak lagi bisa digunakan untuk bergabung.
+
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 ---
 
 #### `POST /api/shared-savings/join`
@@ -1388,6 +1513,42 @@ Bergabung ke grup tabungan bersama menggunakan kode undangan. Pengguna yang suda
 
 ---
 
+<<<<<<< HEAD
+=======
+#### `POST /api/shared-savings/:id/image`
+
+Mengunggah gambar untuk grup tabungan bersama. File yang dikirim harus berupa gambar.
+
+**Request Body:**
+- Field `image` berupa file gambar (`multipart/form-data`)
+
+**Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Gambar tabungan bersama berhasil diunggah.",
+  "data": {
+    "shared_savings": {
+      "id": "uuid-shared-savings",
+      "owner_id": "uuid-user",
+      "name": "Liburan Keluarga 2026",
+      "description": "Tabungan bersama untuk liburan akhir tahun",
+      "target_amount": 20000000,
+      "current_amount": 0,
+      "image_url": "https://.../shared-savings-images/...jpg",
+      "invite_code": "A3F9B2C1",
+      "status": "active",
+      "created_at": "2025-06-27T10:00:00Z"
+    }
+  }
+}
+```
+
+> Saat gambar baru diunggah, file lama di bucket storage akan otomatis dihapus.
+
+---
+
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 #### `GET /api/shared-savings/:id/members`
 
 Mengambil daftar anggota dalam sebuah grup tabungan bersama. Hanya dapat diakses oleh anggota grup.
@@ -1626,6 +1787,10 @@ Menghapus transaksi bersama dan me-*rollback* dampaknya pada saldo grup.
 | `name` | `string` | Nama target tabungan |
 | `target_amount` | `numeric` | Jumlah target |
 | `current_amount` | `numeric` | Saldo saat ini (default: `0`) |
+<<<<<<< HEAD
+=======
+| `image_url` | `string` | URL gambar tabungan (opsional) |
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 | `created_at` | `timestamptz` | Waktu pembuatan |
 | `updated_at` | `timestamptz` | Waktu terakhir diperbarui |
 
@@ -1651,6 +1816,10 @@ Menghapus transaksi bersama dan me-*rollback* dampaknya pada saldo grup.
 | `description` | `string` | Deskripsi (default: `""`) |
 | `target_amount` | `numeric` | Jumlah target bersama |
 | `current_amount` | `numeric` | Saldo saat ini (default: `0`) |
+<<<<<<< HEAD
+=======
+| `image_url` | `string` | URL gambar grup (opsional) |
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 | `invite_code` | `string` | Kode undangan 8 karakter hex uppercase unik |
 | `status` | `string` | Status grup (default: `"active"`) |
 | `created_at` | `timestamptz` | Waktu pembuatan |
@@ -1682,7 +1851,13 @@ Menghapus transaksi bersama dan me-*rollback* dampaknya pada saldo grup.
 | Kolom | Tipe | Deskripsi |
 |---|---|---|
 | `id` | `UUID` (FK) | Referensi ke auth user |
+<<<<<<< HEAD
 | `name` | `string` | Nama tampilan pengguna |
+=======
+| `full_name` | `string` | Nama tampilan pengguna |
+| `username` | `string` | Username pengguna |
+| `avatar_url` | `string` | URL avatar pengguna |
+>>>>>>> 22b4a4f0666d8c8aaeb593e490b3ce5d5002b525
 
 ---
 

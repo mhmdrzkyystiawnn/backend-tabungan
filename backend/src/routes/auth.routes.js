@@ -35,7 +35,7 @@ router.post(
 // 3. Sisipkan loginLimiter sebagai middleware sebelum validasi
 router.post(
     "/login",
-    loginLimiter, 
+    loginLimiter,
     validate(loginSchema),
     asyncHandler(login)
 );

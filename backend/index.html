@@ -1,505 +1,843 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tabunganku — API Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0f1117;
-    --bg2: #161b27;
-    --bg3: #1e2535;
-    --border: #2a3147;
-    --text: #e2e8f0;
-    --muted: #8892a4;
-    --accent: #6366f1;
-    --accent2: #818cf8;
-    --green: #22c55e;
-    --yellow: #f59e0b;
-    --red: #ef4444;
-    --blue: #38bdf8;
-    --orange: #f97316;
-    --purple: #a855f7;
+/* ─── Design Tokens ─── */
+:root {
+  /* Brand palette */
+  --brand-deep:   #5A0E24;
+  --brand-rich:   #76153C;
+  --brand-vivid:  #BF124D;
+  --brand-blue:   #67B2D8;
+  --brand-vivid-light: #d4336a;
 
-    --get: #22c55e;
-    --post: #6366f1;
-    --put: #f59e0b;
-    --patch: #f97316;
-    --delete: #ef4444;
+  /* Dark mode (default) */
+  --bg:         #0f0a0d;
+  --bg2:        #180d13;
+  --bg3:        #21101a;
+  --bg4:        #2a1520;
+  --border:     #3a1a28;
+  --border2:    #4d2235;
+  --text:       #f2e8ec;
+  --text2:      #c9a8b4;
+  --muted:      #8a6070;
+  --accent:     #BF124D;
+  --accent2:    #e8537a;
+  --blue:       #67B2D8;
+  --green:      #4ade80;
+  --yellow:     #fbbf24;
+  --red:        #f87171;
+  --orange:     #fb923c;
+  --purple:     #c084fc;
 
-    --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    --radius: 8px;
-    --radius-lg: 14px;
-  }
+  /* Sidebar */
+  --nav-bg:     #110810;
+  --nav-border: #3a1a28;
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Methods */
+  --get-bg:    rgba(74,222,128,.13);
+  --get-color: #4ade80;
+  --post-bg:   rgba(191,18,77,.15);
+  --post-color:#e8537a;
+  --put-bg:    rgba(251,191,36,.13);
+  --put-color: #fbbf24;
+  --patch-bg:  rgba(103,178,216,.13);
+  --patch-color:#67B2D8;
+  --del-bg:    rgba(248,113,113,.13);
+  --del-color: #f87171;
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-sans);
-    font-size: 14px;
-    line-height: 1.65;
-    display: flex;
-    min-height: 100vh;
-  }
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', -apple-system, sans-serif;
+  --radius:    8px;
+  --radius-lg: 14px;
+  --sidebar-w: 270px;
+  --transition: 0.2s ease;
+}
 
-  /* ─── Sidebar ─── */
+[data-theme="light"] {
+  --bg:         #fdf6f8;
+  --bg2:        #ffffff;
+  --bg3:        #fff1f4;
+  --bg4:        #ffe4ea;
+  --border:     #f0c5d0;
+  --border2:    #e8a8bc;
+  --text:       #1a0510;
+  --text2:      #5a1e34;
+  --muted:      #9a5068;
+  --accent:     #BF124D;
+  --accent2:    #9a0c3c;
+  --blue:       #2a8fb5;
+  --green:      #15803d;
+  --yellow:     #b45309;
+  --red:        #dc2626;
+  --orange:     #c2410c;
+  --purple:     #7c3aed;
+
+  --nav-bg:     #fff8fa;
+  --nav-border: #f0c5d0;
+
+  --get-bg:    rgba(21,128,61,.10);
+  --get-color: #15803d;
+  --post-bg:   rgba(191,18,77,.10);
+  --post-color:#9a0c3c;
+  --put-bg:    rgba(180,83,9,.10);
+  --put-color: #b45309;
+  --patch-bg:  rgba(42,143,181,.10);
+  --patch-color:#2a8fb5;
+  --del-bg:    rgba(220,38,38,.10);
+  --del-color: #dc2626;
+}
+
+/* ─── Reset ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.65;
+  display: flex;
+  min-height: 100vh;
+  transition: background var(--transition), color var(--transition);
+}
+
+/* ─── Layout ─── */
+.layout { display: flex; width: 100%; }
+
+/* ─── Sidebar Overlay (mobile) ─── */
+.nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(2px);
+  z-index: 40;
+}
+.nav-overlay.active { display: block; }
+
+/* ─── Sidebar ─── */
+nav {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--nav-bg);
+  border-right: 1px solid var(--nav-border);
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition), background var(--transition);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+nav::-webkit-scrollbar { width: 4px; }
+nav::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ─── Nav Header ─── */
+.nav-header {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--nav-border);
+  position: sticky;
+  top: 0;
+  background: var(--nav-bg);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-logo {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, var(--brand-rich), var(--brand-vivid));
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+}
+
+.nav-title { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.nav-version { font-size: 10px; font-family: var(--font-mono); color: var(--muted); margin-top: 1px; }
+
+.nav-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+/* Theme toggle */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  transition: all var(--transition);
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent2); }
+.theme-toggle svg { width: 13px; height: 13px; }
+
+/* Search box */
+.nav-search {
+  margin-top: 12px;
+  position: relative;
+}
+.nav-search input {
+  width: 100%;
+  padding: 7px 10px 7px 32px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--text);
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color var(--transition);
+}
+.nav-search input:focus { border-color: var(--accent); }
+.nav-search input::placeholder { color: var(--muted); }
+.nav-search .search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+}
+.nav-search .search-icon svg { width: 13px; height: 13px; }
+
+/* ─── Nav Sections ─── */
+.nav-section { padding: 14px 14px 6px; }
+.nav-section-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 6px;
+  margin-bottom: 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  text-decoration: none;
+  color: var(--text2);
+  font-size: 12px;
+  transition: all 0.15s;
+  margin-bottom: 1px;
+  position: relative;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active {
+  background: var(--bg4);
+  color: var(--accent2);
+  border-left: 2px solid var(--accent);
+  padding-left: 6px;
+}
+
+.nav-method {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  min-width: 38px;
+  text-align: center;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.m-get    { background: var(--get-bg);   color: var(--get-color); }
+.m-post   { background: var(--post-bg);  color: var(--post-color); }
+.m-put    { background: var(--put-bg);   color: var(--put-color); }
+.m-patch  { background: var(--patch-bg); color: var(--patch-color); }
+.m-delete { background: var(--del-bg);   color: var(--del-color); }
+
+/* ─── Main ─── */
+main {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  max-width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: margin-left var(--transition);
+}
+
+/* ─── Top Bar (mobile) ─── */
+.topbar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.hamburger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+.hamburger svg { width: 22px; height: 22px; }
+
+.topbar-brand {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-logo {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--brand-rich), var(--brand-vivid));
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 12px; color: #fff;
+}
+
+.topbar-theme {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  transition: border-color var(--transition);
+}
+.topbar-theme:hover { border-color: var(--accent); }
+.topbar-theme svg { width: 16px; height: 16px; }
+
+/* ─── Hero Header ─── */
+.main-header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 48px 60px 44px;
+  position: relative;
+  overflow: hidden;
+}
+
+.main-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(191,18,77,.07) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.main-header::after {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, rgba(191,18,77,.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.header-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent2);
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+}
+
+.main-header h1 {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -1.2px;
+  color: var(--text);
+  line-height: 1.1;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.main-header h1 span {
+  background: linear-gradient(90deg, var(--brand-vivid), var(--brand-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.main-header p {
+  color: var(--text2);
+  font-size: 14px;
+  max-width: 580px;
+  line-height: 1.75;
+  position: relative;
+}
+
+.badges {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.badge {
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--bg3);
+}
+.badge.accent { border-color: rgba(191,18,77,.4); color: var(--accent2); background: rgba(191,18,77,.08); }
+.badge.blue   { border-color: rgba(103,178,216,.35); color: var(--blue); background: rgba(103,178,216,.07); }
+.badge.green  { border-color: rgba(74,222,128,.3); color: var(--green); background: rgba(74,222,128,.06); }
+
+/* ─── Content ─── */
+.content { padding: 52px 60px; max-width: 900px; }
+
+/* ─── Sections ─── */
+.doc-section { margin-bottom: 76px; scroll-margin-top: 24px; }
+
+.section-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--accent2);
+  font-family: var(--font-mono);
+  margin-bottom: 10px;
+}
+
+.section-h2 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+
+.section-desc {
+  color: var(--text2);
+  font-size: 14px;
+  margin-bottom: 28px;
+  max-width: 640px;
+  line-height: 1.75;
+}
+
+/* ─── Overview Cards ─── */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 36px;
+}
+
+.overview-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 18px;
+  transition: border-color var(--transition);
+}
+.overview-card:hover { border-color: var(--border2); }
+
+.oc-icon { font-size: 18px; margin-bottom: 10px; }
+.oc-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 5px; }
+.oc-value { font-size: 12.5px; color: var(--text); font-family: var(--font-mono); font-weight: 500; }
+.oc-desc  { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+/* ─── Endpoint Cards ─── */
+.endpoint {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 18px;
+  overflow: hidden;
+  transition: border-color var(--transition);
+}
+.endpoint:hover { border-color: var(--border2); }
+
+.endpoint-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.endpoint-method {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  min-width: 56px;
+  text-align: center;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.endpoint-info { flex: 1; min-width: 0; }
+
+.endpoint-path {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-all;
+}
+.endpoint-path .base { color: var(--muted); }
+.endpoint-path .param { color: var(--blue); }
+
+.endpoint-summary { font-size: 12.5px; color: var(--text2); margin-top: 3px; }
+
+.endpoint-tags { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
+.tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.tag-auth  { background: rgba(191,18,77,.12); color: var(--accent2); border: 1px solid rgba(191,18,77,.25); }
+.tag-owner { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+
+/* ─── Endpoint Body ─── */
+.endpoint-body { padding: 20px; }
+
+.endpoint-body h4 {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  margin-top: 20px;
+}
+.endpoint-body h4:first-child { margin-top: 0; }
+
+/* ─── Tables ─── */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 500px; }
+
+th {
+  text-align: left;
+  padding: 9px 14px;
+  background: var(--bg3);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 9.5px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(58,26,40,.5);
+  vertical-align: top;
+  color: var(--text2);
+}
+[data-theme="light"] td { border-bottom-color: rgba(240,197,208,.5); }
+tr:last-child td { border-bottom: none; }
+
+td code {
+  font-family: var(--font-mono);
+  background: var(--bg3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  color: var(--blue);
+  border: 1px solid var(--border);
+}
+
+.req { color: var(--red); font-size: 10px; font-weight: 700; }
+.opt { color: var(--muted); font-size: 10px; }
+
+/* ─── Code Blocks ─── */
+.code-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 6px;
+}
+[data-theme="light"] .code-block { background: #1a0912; }
+
+.code-label {
+  padding: 8px 14px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+[data-theme="light"] .code-label { background: #21101a; color: #8a6070; }
+
+.code-label .code-status { color: var(--green); font-weight: 600; }
+
+pre {
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.75;
+  overflow-x: auto;
+  color: #e8d4dc;
+  tab-size: 2;
+}
+
+/* Syntax highlighting - always on dark bg */
+.key  { color: #93c5fd; }
+.str  { color: #86efac; }
+.num  { color: #fdba74; }
+.bool { color: #c084fc; }
+.null { color: #6b7280; }
+.cmt  { color: #4d2a38; font-style: italic; }
+
+/* ─── Responses ─── */
+.response-list { margin-top: 4px; }
+.response-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(58,26,40,.4);
+}
+[data-theme="light"] .response-row { border-bottom-color: rgba(240,197,208,.4); }
+.response-row:last-child { border-bottom: none; }
+
+.status-badge {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  min-width: 40px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.s200 { background: rgba(74,222,128,.13); color: var(--green); }
+.s201 { background: rgba(103,178,216,.13); color: var(--blue); }
+.s400 { background: rgba(251,191,36,.13); color: var(--yellow); }
+.s401 { background: rgba(248,113,113,.13); color: var(--red); }
+.s403 { background: rgba(251,146,60,.13); color: var(--orange); }
+.s404 { background: rgba(248,113,113,.13); color: var(--red); }
+.s500 { background: rgba(192,132,252,.13); color: var(--purple); }
+
+.response-desc { font-size: 12.5px; color: var(--text2); padding-top: 2px; }
+.response-desc code {
+  font-family: var(--font-mono);
+  background: var(--bg3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--blue);
+  border: 1px solid var(--border);
+}
+
+/* ─── Info/Warn Boxes ─── */
+.info-box, .warn-box {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 18px;
+  line-height: 1.7;
+}
+.info-box {
+  background: rgba(103,178,216,.07);
+  border: 1px solid rgba(103,178,216,.2);
+}
+.warn-box {
+  background: rgba(251,191,36,.06);
+  border: 1px solid rgba(251,191,36,.2);
+}
+.info-box strong { color: var(--blue); }
+.warn-box strong { color: var(--yellow); }
+.info-box code, .warn-box code {
+  font-family: var(--font-mono);
+  background: var(--bg3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  color: var(--blue);
+  border: 1px solid var(--border);
+}
+
+/* ─── Divider ─── */
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border), transparent);
+  margin: 48px 0;
+}
+
+/* ─── Inline Code ─── */
+.inline-code {
+  font-family: var(--font-mono);
+  background: var(--bg3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--blue);
+  border: 1px solid var(--border);
+}
+
+/* ─── Quick Ref Table ─── */
+.quick-ref-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+.quick-ref { min-width: 620px; }
+.quick-ref td:first-child { width: 80px; }
+.quick-ref td:nth-child(2) { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+.quick-ref td:nth-child(3) { font-size: 11px; text-align: center; color: var(--muted); }
+
+/* Method badges in quick-ref */
+.mb-get    { background: var(--get-bg);   color: var(--get-color);   font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; display: inline-block; }
+.mb-post   { background: var(--post-bg);  color: var(--post-color);  font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; display: inline-block; }
+.mb-put    { background: var(--put-bg);   color: var(--put-color);   font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; display: inline-block; }
+.mb-patch  { background: var(--patch-bg); color: var(--patch-color); font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; display: inline-block; }
+.mb-delete { background: var(--del-bg);   color: var(--del-color);   font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; display: inline-block; }
+
+.auth-check { color: var(--muted); font-size: 11px; }
+.auth-owner { color: var(--yellow); font-size: 11px; font-weight: 600; }
+
+/* ─── Footer ─── */
+.footer-note {
+  margin-top: 32px;
+  padding: 20px 22px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.footer-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--brand-rich), var(--brand-vivid));
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.footer-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+.footer-text  { font-size: 12.5px; color: var(--text2); line-height: 1.6; }
+.footer-text .inline-code { font-size: 11px; }
+
+/* ─── Scrollbar (main) ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .overview-grid { grid-template-columns: repeat(2, 1fr); }
+  .content { padding: 36px 28px; }
+  .main-header { padding: 32px 28px 28px; }
+  .main-header h1 { font-size: 26px; }
+}
+
+@media (max-width: 768px) {
   nav {
-    width: 260px;
-    min-width: 260px;
-    background: var(--bg2);
-    border-right: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    padding: 0 0 40px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    transform: translateX(calc(-1 * var(--sidebar-w)));
+    box-shadow: none;
   }
-
-  .nav-header {
-    padding: 28px 20px 20px;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    background: var(--bg2);
-    z-index: 10;
+  nav.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 30px rgba(0,0,0,.35);
   }
+  main { margin-left: 0; }
+  .topbar { display: flex; }
+  .overview-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .content { padding: 28px 18px; }
+  .main-header { padding: 24px 18px 22px; }
+  .main-header h1 { font-size: 22px; }
+  .main-header p { font-size: 13px; }
+  .section-h2 { font-size: 20px; }
+  .endpoint-header { flex-wrap: wrap; }
+  .endpoint-body { padding: 16px; }
+  pre { font-size: 11px; }
+}
 
-  .nav-header .brand {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.3px;
-  }
+@media (max-width: 480px) {
+  .overview-grid { grid-template-columns: 1fr 1fr; }
+  .badges { gap: 6px; }
+  .badge { font-size: 9.5px; padding: 3px 8px; }
+  .main-header h1 { font-size: 20px; letter-spacing: -0.5px; }
+  .quick-ref-wrap { font-size: 11px; }
+  .footer-note { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
 
-  .nav-header .version {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 2px;
-    font-family: var(--font-mono);
-  }
-
-  .nav-section {
-    padding: 16px 20px 4px;
-  }
-
-  .nav-section-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    text-decoration: none;
-    color: var(--muted);
-    font-size: 12.5px;
-    transition: all 0.15s;
-    margin-bottom: 1px;
-  }
-
-  .nav-item:hover {
-    background: var(--bg3);
-    color: var(--text);
-  }
-
-  .nav-method {
-    font-family: var(--font-mono);
-    font-size: 9px;
-    font-weight: 700;
-    padding: 2px 5px;
-    border-radius: 3px;
-    min-width: 40px;
-    text-align: center;
-    letter-spacing: 0.3px;
-  }
-
-  .m-get { background: rgba(34,197,94,.15); color: var(--get); }
-  .m-post { background: rgba(99,102,241,.15); color: var(--post); }
-  .m-put { background: rgba(245,158,11,.15); color: var(--put); }
-  .m-patch { background: rgba(249,115,22,.15); color: var(--patch); }
-  .m-delete { background: rgba(239,68,68,.15); color: var(--delete); }
-
-  /* ─── Main ─── */
-  main {
-    flex: 1;
-    max-width: calc(100vw - 260px);
-    overflow-x: hidden;
-  }
-
-  .main-header {
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    padding: 40px 56px;
-  }
-
-  .main-header h1 {
-    font-size: 32px;
-    font-weight: 800;
-    letter-spacing: -1px;
-    color: var(--text);
-  }
-
-  .main-header p {
-    color: var(--muted);
-    font-size: 14px;
-    margin-top: 6px;
-    max-width: 600px;
-  }
-
-  .badges {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-  }
-
-  .badge {
-    font-size: 11px;
-    font-family: var(--font-mono);
-    padding: 3px 10px;
-    border-radius: 99px;
-    border: 1px solid var(--border);
-    color: var(--muted);
-  }
-
-  .badge.accent { border-color: var(--accent); color: var(--accent2); background: rgba(99,102,241,.08); }
-  .badge.green { border-color: var(--green); color: var(--green); background: rgba(34,197,94,.08); }
-
-  /* ─── Content ─── */
-  .content {
-    padding: 48px 56px;
-    max-width: 900px;
-  }
-
-  /* ─── Sections ─── */
-  .doc-section {
-    margin-bottom: 72px;
-  }
-
-  .section-title {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--accent2);
-    margin-bottom: 16px;
-  }
-
-  .section-h2 {
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    margin-bottom: 10px;
-    color: var(--text);
-  }
-
-  .section-desc {
-    color: var(--muted);
-    font-size: 14px;
-    margin-bottom: 28px;
-    max-width: 640px;
-    line-height: 1.7;
-  }
-
-  /* ─── Endpoint Cards ─── */
-  .endpoint {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    margin-bottom: 20px;
-    overflow: hidden;
-  }
-
-  .endpoint-header {
-    padding: 16px 20px;
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    cursor: default;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .endpoint-method {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 5px;
-    min-width: 58px;
-    text-align: center;
-    letter-spacing: 0.5px;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  .endpoint-info { flex: 1; }
-
-  .endpoint-path {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    color: var(--text);
-    font-weight: 500;
-  }
-
-  .endpoint-path .base {
-    color: var(--muted);
-  }
-
-  .endpoint-summary {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 3px;
-  }
-
-  .endpoint-tags {
-    display: flex;
-    gap: 6px;
-    margin-top: 6px;
-  }
-
-  .tag {
-    font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 4px;
-    font-family: var(--font-mono);
-  }
-
-  .tag-auth { background: rgba(168,85,247,.15); color: var(--purple); border: 1px solid rgba(168,85,247,.3); }
-  .tag-owner { background: rgba(245,158,11,.15); color: var(--yellow); border: 1px solid rgba(245,158,11,.3); }
-
-  /* ─── Endpoint Body ─── */
-  .endpoint-body {
-    padding: 20px;
-  }
-
-  .endpoint-body h4 {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--muted);
-    margin-bottom: 10px;
-    margin-top: 18px;
-  }
-
-  .endpoint-body h4:first-child { margin-top: 0; }
-
-  /* ─── Tables ─── */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12.5px;
-    margin-bottom: 4px;
-  }
-
-  th {
-    text-align: left;
-    padding: 7px 12px;
-    background: var(--bg3);
-    color: var(--muted);
-    font-weight: 600;
-    font-size: 10px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--border);
-  }
-
-  td {
-    padding: 9px 12px;
-    border-bottom: 1px solid rgba(42,49,71,.6);
-    vertical-align: top;
-  }
-
-  tr:last-child td { border-bottom: none; }
-
-  td code, th code {
-    font-family: var(--font-mono);
-    background: var(--bg3);
-    padding: 1px 5px;
-    border-radius: 3px;
-    font-size: 11px;
-    color: var(--accent2);
-  }
-
-  .req { color: var(--red); font-size: 10px; font-weight: 600; }
-  .opt { color: var(--muted); font-size: 10px; }
-
-  /* ─── Code Blocks ─── */
-  .code-block {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    margin-top: 4px;
-  }
-
-  .code-label {
-    padding: 7px 14px;
-    background: var(--bg3);
-    border-bottom: 1px solid var(--border);
-    font-size: 10px;
-    font-family: var(--font-mono);
-    color: var(--muted);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .code-label span { color: var(--green); }
-
-  pre {
-    padding: 16px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 1.7;
-    overflow-x: auto;
-    color: var(--text);
-    tab-size: 2;
-  }
-
-  .key { color: #93c5fd; }
-  .str { color: #86efac; }
-  .num { color: #fdba74; }
-  .bool { color: #c084fc; }
-  .null { color: var(--muted); }
-  .comment { color: #475569; font-style: italic; }
-
-  /* ─── Response codes ─── */
-  .response-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(42,49,71,.5);
-  }
-
-  .response-row:last-child { border-bottom: none; }
-
-  .status-badge {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 4px;
-    min-width: 42px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
-  .s200 { background: rgba(34,197,94,.15); color: var(--green); }
-  .s201 { background: rgba(56,189,248,.15); color: var(--blue); }
-  .s400 { background: rgba(245,158,11,.15); color: var(--yellow); }
-  .s401 { background: rgba(239,68,68,.15); color: var(--red); }
-  .s403 { background: rgba(249,115,22,.15); color: var(--orange); }
-  .s404 { background: rgba(239,68,68,.15); color: var(--red); }
-  .s500 { background: rgba(168,85,247,.15); color: var(--purple); }
-
-  .response-desc { font-size: 13px; color: var(--muted); }
-
-  /* ─── Info boxes ─── */
-  .info-box {
-    background: rgba(99,102,241,.08);
-    border: 1px solid rgba(99,102,241,.25);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 20px;
-    line-height: 1.7;
-  }
-
-  .info-box strong { color: var(--accent2); }
-
-  .warn-box {
-    background: rgba(245,158,11,.06);
-    border: 1px solid rgba(245,158,11,.2);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 20px;
-    line-height: 1.7;
-  }
-
-  .warn-box strong { color: var(--yellow); }
-
-  /* ─── Overview grid ─── */
-  .overview-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    margin-bottom: 32px;
-  }
-
-  .overview-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 18px 20px;
-  }
-
-  .overview-card .oc-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--muted);
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-
-  .overview-card .oc-value {
-    font-size: 13px;
-    color: var(--text);
-    font-family: var(--font-mono);
-  }
-
-  .overview-card .oc-desc {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-
-  .divider {
-    height: 1px;
-    background: var(--border);
-    margin: 40px 0;
-  }
-
-  .inline-code {
-    font-family: var(--font-mono);
-    background: var(--bg3);
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-size: 12px;
-    color: var(--accent2);
-    border: 1px solid var(--border);
-  }
-
-  /* scrollbar */
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+/* ─── Print / reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
 </style>
 </head>
 <body>
 
+<div class="nav-overlay" id="navOverlay"></div>
+
+<div class="layout">
 <!-- ══════════════════ SIDEBAR ══════════════════ -->
-<nav>
+<nav id="mainNav">
   <div class="nav-header">
-    <div class="brand">Tabunganku API</div>
-    <div class="version">v1.0.0 · Express 5 + Supabase</div>
+    <div class="nav-brand">
+      <div class="nav-logo">Tk</div>
+      <div>
+        <div class="nav-title">Tabunganku API</div>
+        <div class="nav-version">v1.0.0 · Express 5 + Supabase</div>
+      </div>
+    </div>
+    <div class="nav-header-actions">
+      <span style="font-size:11px;color:var(--muted)">REST API Docs</span>
+      <button class="theme-toggle" id="themeToggle" title="Toggle tema">
+        <svg id="themeIcon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span id="themeLabel">Light</span>
+      </button>
+    </div>
+    <div class="nav-search">
+      <span class="search-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+      <input type="text" id="navSearch" placeholder="Cari endpoint…">
+    </div>
   </div>
 
   <div class="nav-section">
@@ -507,82 +845,101 @@
     <a class="nav-item" href="#overview">Pengantar</a>
     <a class="nav-item" href="#auth-scheme">Autentikasi</a>
     <a class="nav-item" href="#response-format">Format Respons</a>
-    <a class="nav-item" href="#errors">Error Handling</a>
-    <a class="nav-item" href="#pagination">Pagination</a>
+    <a class="nav-item" href="#errors">HTTP Status Codes</a>
+    <a class="nav-item" href="#pagination">Pagination & Filter</a>
   </div>
 
   <div class="nav-section">
     <div class="nav-section-label">Auth</div>
-    <a class="nav-item" href="#auth-register"><span class="nav-method m-post">POST</span>/auth/register</a>
-    <a class="nav-item" href="#auth-login"><span class="nav-method m-post">POST</span>/auth/login</a>
-    <a class="nav-item" href="#auth-refresh"><span class="nav-method m-post">POST</span>/auth/refresh</a>
-    <a class="nav-item" href="#auth-logout"><span class="nav-method m-post">POST</span>/auth/logout</a>
+    <a class="nav-item" href="#auth-register"><span class="nav-method m-post">POST</span>register</a>
+    <a class="nav-item" href="#auth-login"><span class="nav-method m-post">POST</span>login</a>
+    <a class="nav-item" href="#auth-refresh"><span class="nav-method m-post">POST</span>refresh</a>
+    <a class="nav-item" href="#auth-logout"><span class="nav-method m-post">POST</span>logout</a>
   </div>
 
   <div class="nav-section">
     <div class="nav-section-label">Profile</div>
-    <a class="nav-item" href="#profile-get"><span class="nav-method m-get">GET</span>/profile</a>
-    <a class="nav-item" href="#profile-update"><span class="nav-method m-put">PUT</span>/profile</a>
-    <a class="nav-item" href="#profile-password"><span class="nav-method m-put">PUT</span>/profile/password</a>
+    <a class="nav-item" href="#profile-get"><span class="nav-method m-get">GET</span>profile</a>
+    <a class="nav-item" href="#profile-update"><span class="nav-method m-put">PUT</span>profile</a>
+    <a class="nav-item" href="#profile-password"><span class="nav-method m-put">PUT</span>password</a>
   </div>
 
   <div class="nav-section">
     <div class="nav-section-label">Savings</div>
-    <a class="nav-item" href="#savings-create"><span class="nav-method m-post">POST</span>/savings</a>
-    <a class="nav-item" href="#savings-list"><span class="nav-method m-get">GET</span>/savings</a>
-    <a class="nav-item" href="#savings-get"><span class="nav-method m-get">GET</span>/savings/:id</a>
-    <a class="nav-item" href="#savings-trx"><span class="nav-method m-get">GET</span>/savings/:id/trx</a>
-    <a class="nav-item" href="#savings-update"><span class="nav-method m-put">PUT</span>/savings/:id</a>
-    <a class="nav-item" href="#savings-delete"><span class="nav-method m-delete">DEL</span>/savings/:id</a>
+    <a class="nav-item" href="#savings-create"><span class="nav-method m-post">POST</span>savings</a>
+    <a class="nav-item" href="#savings-list"><span class="nav-method m-get">GET</span>savings</a>
+    <a class="nav-item" href="#savings-get"><span class="nav-method m-get">GET</span>savings/:id</a>
+    <a class="nav-item" href="#savings-trx"><span class="nav-method m-get">GET</span>savings/:id/trx</a>
+    <a class="nav-item" href="#savings-update"><span class="nav-method m-put">PUT</span>savings/:id</a>
+    <a class="nav-item" href="#savings-delete"><span class="nav-method m-delete">DEL</span>savings/:id</a>
   </div>
 
   <div class="nav-section">
     <div class="nav-section-label">Transactions</div>
-    <a class="nav-item" href="#trx-create"><span class="nav-method m-post">POST</span>/transactions</a>
-    <a class="nav-item" href="#trx-list"><span class="nav-method m-get">GET</span>/transactions</a>
-    <a class="nav-item" href="#trx-get"><span class="nav-method m-get">GET</span>/transactions/:id</a>
-    <a class="nav-item" href="#trx-update"><span class="nav-method m-patch">PATCH</span>/transactions/:id</a>
-    <a class="nav-item" href="#trx-delete"><span class="nav-method m-delete">DEL</span>/transactions/:id</a>
+    <a class="nav-item" href="#trx-create"><span class="nav-method m-post">POST</span>transactions</a>
+    <a class="nav-item" href="#trx-list"><span class="nav-method m-get">GET</span>transactions</a>
+    <a class="nav-item" href="#trx-get"><span class="nav-method m-get">GET</span>transactions/:id</a>
+    <a class="nav-item" href="#trx-update"><span class="nav-method m-patch">PATCH</span>transactions/:id</a>
+    <a class="nav-item" href="#trx-delete"><span class="nav-method m-delete">DEL</span>transactions/:id</a>
   </div>
 
   <div class="nav-section">
     <div class="nav-section-label">Dashboard</div>
-    <a class="nav-item" href="#dash-overview"><span class="nav-method m-get">GET</span>/dashboard</a>
-    <a class="nav-item" href="#dash-stats"><span class="nav-method m-get">GET</span>/dashboard/stats</a>
-    <a class="nav-item" href="#dash-recent"><span class="nav-method m-get">GET</span>/dashboard/recent</a>
+    <a class="nav-item" href="#dash-overview"><span class="nav-method m-get">GET</span>dashboard</a>
+    <a class="nav-item" href="#dash-stats"><span class="nav-method m-get">GET</span>dashboard/stats</a>
+    <a class="nav-item" href="#dash-recent"><span class="nav-method m-get">GET</span>dashboard/recent</a>
   </div>
 
   <div class="nav-section">
     <div class="nav-section-label">Shared Savings</div>
-    <a class="nav-item" href="#ss-create"><span class="nav-method m-post">POST</span>/shared-savings</a>
-    <a class="nav-item" href="#ss-list"><span class="nav-method m-get">GET</span>/shared-savings</a>
-    <a class="nav-item" href="#ss-get"><span class="nav-method m-get">GET</span>/shared-savings/:id</a>
-    <a class="nav-item" href="#ss-update"><span class="nav-method m-patch">PATCH</span>/shared-savings/:id</a>
-    <a class="nav-item" href="#ss-delete"><span class="nav-method m-delete">DEL</span>/shared-savings/:id</a>
-    <a class="nav-item" href="#ss-join"><span class="nav-method m-post">POST</span>/shared-savings/join</a>
-    <a class="nav-item" href="#ss-members"><span class="nav-method m-get">GET</span>/shared-savings/:id/members</a>
-    <a class="nav-item" href="#ss-stats"><span class="nav-method m-get">GET</span>/shared-savings/:id/stats</a>
+    <a class="nav-item" href="#ss-create"><span class="nav-method m-post">POST</span>shared-savings</a>
+    <a class="nav-item" href="#ss-list"><span class="nav-method m-get">GET</span>shared-savings</a>
+    <a class="nav-item" href="#ss-get"><span class="nav-method m-get">GET</span>shared-savings/:id</a>
+    <a class="nav-item" href="#ss-update"><span class="nav-method m-patch">PATCH</span>shared-savings/:id</a>
+    <a class="nav-item" href="#ss-delete"><span class="nav-method m-delete">DEL</span>shared-savings/:id</a>
+    <a class="nav-item" href="#ss-join"><span class="nav-method m-post">POST</span>shared-savings/join</a>
+    <a class="nav-item" href="#ss-members"><span class="nav-method m-get">GET</span>shared-savings/:id/members</a>
+    <a class="nav-item" href="#ss-stats"><span class="nav-method m-get">GET</span>shared-savings/:id/stats</a>
   </div>
 
   <div class="nav-section">
     <div class="nav-section-label">Shared Transactions</div>
-    <a class="nav-item" href="#st-create"><span class="nav-method m-post">POST</span>/shared-transactions</a>
-    <a class="nav-item" href="#st-update"><span class="nav-method m-patch">PATCH</span>/shared-transactions/:id</a>
-    <a class="nav-item" href="#st-delete"><span class="nav-method m-delete">DEL</span>/shared-transactions/:id</a>
+    <a class="nav-item" href="#st-create"><span class="nav-method m-post">POST</span>shared-transactions</a>
+    <a class="nav-item" href="#st-update"><span class="nav-method m-patch">PATCH</span>shared-transactions/:id</a>
+    <a class="nav-item" href="#st-delete"><span class="nav-method m-delete">DEL</span>shared-transactions/:id</a>
   </div>
+
+  <div style="height:20px"></div>
 </nav>
 
 <!-- ══════════════════ MAIN ══════════════════ -->
 <main>
+  <!-- Mobile topbar -->
+  <div class="topbar">
+    <button class="hamburger" id="hamburger" aria-label="Buka menu">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="topbar-brand">
+      <div class="topbar-logo">Tk</div>
+      Tabunganku API
+    </div>
+    <button class="topbar-theme" id="themeToggle2" title="Toggle tema">
+      <svg id="themeIcon2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </button>
+  </div>
+
+  <!-- Header -->
   <div class="main-header">
-    <h1>Tabunganku — API Documentation</h1>
-    <p>Dokumentasi lengkap REST API untuk aplikasi manajemen tabungan pribadi dan bersama berbasis Express.js + Supabase.</p>
+    <div class="header-eyebrow">REST API · v1.0.0</div>
+    <h1>Tabunganku <span>API Docs</span></h1>
+    <p>Dokumentasi lengkap REST API untuk manajemen tabungan pribadi dan bersama. Dibangun dengan Express.js 5, Supabase Auth, dan Zod validation.</p>
     <div class="badges">
       <span class="badge accent">v1.0.0</span>
       <span class="badge green">Express 5.x</span>
-      <span class="badge">Supabase Auth</span>
+      <span class="badge blue">Supabase Auth</span>
       <span class="badge">Zod Validation</span>
       <span class="badge">ESM Modules</span>
+      <span class="badge">PostgreSQL</span>
     </div>
   </div>
 
@@ -590,37 +947,43 @@
 
     <!-- ──────────── OVERVIEW ──────────── -->
     <div class="doc-section" id="overview">
-      <div class="section-title">Overview</div>
+      <div class="section-eyebrow">Overview</div>
       <h2 class="section-h2">Pengantar</h2>
-      <p class="section-desc">Tabunganku API adalah RESTful backend untuk aplikasi pencatatan tabungan. Mendukung dua mode: tabungan pribadi (per user) dan tabungan bersama (kolaboratif, berbasis grup dengan sistem invite code).</p>
+      <p class="section-desc">Tabunganku API adalah RESTful backend untuk pencatatan tabungan. Mendukung dua mode: tabungan pribadi (per user) dan tabungan bersama kolaboratif berbasis grup dengan sistem invite code 8 karakter.</p>
 
       <div class="overview-grid">
         <div class="overview-card">
+          <div class="oc-icon">🔗</div>
           <div class="oc-label">Base URL</div>
           <div class="oc-value">/api</div>
-          <div class="oc-desc">Semua endpoint diawali prefix ini</div>
+          <div class="oc-desc">Semua endpoint menggunakan prefix ini</div>
         </div>
         <div class="overview-card">
+          <div class="oc-icon">📄</div>
           <div class="oc-label">Content-Type</div>
           <div class="oc-value">application/json</div>
-          <div class="oc-desc">Request body & response selalu JSON</div>
+          <div class="oc-desc">Request body &amp; response selalu JSON</div>
         </div>
         <div class="overview-card">
+          <div class="oc-icon">🔒</div>
           <div class="oc-label">Autentikasi</div>
-          <div class="oc-value">Bearer &lt;access_token&gt;</div>
-          <div class="oc-desc">Supabase JWT, di-header Authorization</div>
+          <div class="oc-value">Bearer &lt;token&gt;</div>
+          <div class="oc-desc">Supabase JWT di header Authorization</div>
         </div>
         <div class="overview-card">
+          <div class="oc-icon">🗄️</div>
           <div class="oc-label">Database</div>
-          <div class="oc-value">Supabase (PostgreSQL)</div>
+          <div class="oc-value">Supabase / PostgreSQL</div>
           <div class="oc-desc">Auth + storage via Supabase client</div>
         </div>
         <div class="overview-card">
-          <div class="oc-label">Docs Interaktif</div>
+          <div class="oc-icon">📚</div>
+          <div class="oc-label">Swagger UI</div>
           <div class="oc-value">/api-docs</div>
-          <div class="oc-desc">Swagger UI tersedia di endpoint ini</div>
+          <div class="oc-desc">Docs interaktif tersedia di path ini</div>
         </div>
         <div class="overview-card">
+          <div class="oc-icon">🗃️</div>
           <div class="oc-label">Tabel Utama</div>
           <div class="oc-value">5 tabel</div>
           <div class="oc-desc">savings_goals, transactions, shared_savings, shared_members, shared_transactions</div>
@@ -630,15 +993,12 @@
 
     <!-- ──────────── AUTH SCHEME ──────────── -->
     <div class="doc-section" id="auth-scheme">
-      <div class="section-title">Authentication</div>
+      <div class="section-eyebrow">Authentication</div>
       <h2 class="section-h2">Skema Autentikasi</h2>
-
       <div class="info-box">
-        <strong>Bearer Token (Supabase JWT)</strong><br>
-        Semua endpoint yang memerlukan autentikasi harus menyertakan header <code>Authorization: Bearer &lt;access_token&gt;</code>. Token diperoleh dari endpoint <code>POST /api/auth/login</code>. Token diverifikasi langsung ke Supabase Auth menggunakan <code>supabase.auth.getUser(token)</code>.<br><br>
-        Token <strong>expired</strong> dikembalikan dengan status <strong>401</strong>. Gunakan <code>POST /api/auth/refresh</code> dengan <code>refresh_token</code> untuk mendapatkan access token baru tanpa login ulang.
+        <strong>Bearer Token (Supabase JWT).</strong> Semua endpoint yang memerlukan autentikasi harus menyertakan header <code>Authorization: Bearer &lt;access_token&gt;</code>. Token diperoleh dari <code>POST /api/auth/login</code> dan diverifikasi via <code>supabase.auth.getUser(token)</code>.<br><br>
+        Token yang <strong>expired</strong> mengembalikan status <strong>401</strong>. Gunakan <code>POST /api/auth/refresh</code> dengan <code>refresh_token</code> untuk mendapatkan access token baru tanpa login ulang.
       </div>
-
       <div class="code-block">
         <div class="code-label">Header yang digunakan</div>
         <pre>Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</pre>
@@ -647,37 +1007,37 @@
 
     <!-- ──────────── RESPONSE FORMAT ──────────── -->
     <div class="doc-section" id="response-format">
-      <div class="section-title">Conventions</div>
+      <div class="section-eyebrow">Conventions</div>
       <h2 class="section-h2">Format Respons</h2>
-      <p class="section-desc">Seluruh endpoint mengembalikan struktur JSON yang konsisten dengan field <code>success</code>, <code>message</code>, dan <code>data</code>.</p>
+      <p class="section-desc">Seluruh endpoint mengembalikan struktur JSON yang konsisten dengan field <code class="inline-code">success</code>, <code class="inline-code">message</code>, dan <code class="inline-code">data</code>.</p>
 
       <div class="code-block">
-        <div class="code-label">Success Response <span>200 / 201</span></div>
+        <div class="code-label">Success Response <span class="code-status">200 / 201</span></div>
         <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Pesan deskriptif dalam Bahasa Indonesia"</span>,
   <span class="key">"data"</span>: {
-    <span class="comment">// payload sesuai endpoint</span>
+    <span class="cmt">// payload sesuai endpoint</span>
   }
 }</pre>
       </div>
 
-      <div class="code-block">
-        <div class="code-label">Error Response <span>400 / 401 / 403 / 404 / 500</span></div>
+      <div class="code-block" style="margin-top:12px">
+        <div class="code-label">Error Response <span class="code-status" style="color:var(--red)">4xx / 5xx</span></div>
         <pre>{
   <span class="key">"success"</span>: <span class="bool">false</span>,
   <span class="key">"message"</span>: <span class="str">"Deskripsi error"</span>,
-  <span class="key">"errors"</span>: <span class="null">null</span>  <span class="comment">// atau array Zod errors saat validasi gagal</span>
+  <span class="key">"errors"</span>: <span class="null">null</span>  <span class="cmt">// atau array Zod errors saat validasi gagal</span>
 }</pre>
       </div>
 
-      <div class="code-block">
-        <div class="code-label">Validation Error (Zod) <span>400</span></div>
+      <div class="code-block" style="margin-top:12px">
+        <div class="code-label">Validation Error (Zod) <span class="code-status" style="color:var(--yellow)">400</span></div>
         <pre>{
   <span class="key">"success"</span>: <span class="bool">false</span>,
   <span class="key">"message"</span>: <span class="str">"Validation error"</span>,
   <span class="key">"errors"</span>: [
-    { <span class="key">"field"</span>: <span class="str">"email"</span>, <span class="key">"message"</span>: <span class="str">"Format email tidak valid."</span> },
+    { <span class="key">"field"</span>: <span class="str">"email"</span>,    <span class="key">"message"</span>: <span class="str">"Format email tidak valid."</span> },
     { <span class="key">"field"</span>: <span class="str">"password"</span>, <span class="key">"message"</span>: <span class="str">"Password minimal 8 karakter."</span> }
   ]
 }</pre>
@@ -686,50 +1046,50 @@
 
     <!-- ──────────── ERRORS ──────────── -->
     <div class="doc-section" id="errors">
-      <div class="section-title">Conventions</div>
+      <div class="section-eyebrow">Conventions</div>
       <h2 class="section-h2">HTTP Status Codes</h2>
-
-      <table>
-        <thead><tr><th>Status</th><th>Arti</th></tr></thead>
-        <tbody>
-          <tr><td><span class="status-badge s200">200</span></td><td>Sukses — data berhasil diambil atau diproses</td></tr>
-          <tr><td><span class="status-badge s201">201</span></td><td>Created — resource baru berhasil dibuat</td></tr>
-          <tr><td><span class="status-badge s400">400</span></td><td>Bad Request — validasi gagal, input salah, atau saldo tidak mencukupi</td></tr>
-          <tr><td><span class="status-badge s401">401</span></td><td>Unauthorized — token tidak ada, format salah, atau expired</td></tr>
-          <tr><td><span class="status-badge s403">403</span></td><td>Forbidden — user bukan anggota grup atau bukan owner</td></tr>
-          <tr><td><span class="status-badge s404">404</span></td><td>Not Found — resource tidak ditemukan</td></tr>
-          <tr><td><span class="status-badge s500">500</span></td><td>Internal Server Error — error dari Supabase atau server</td></tr>
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>Arti</th></tr></thead>
+          <tbody>
+            <tr><td><span class="status-badge s200">200</span></td><td>Sukses — data berhasil diambil atau diproses</td></tr>
+            <tr><td><span class="status-badge s201">201</span></td><td>Created — resource baru berhasil dibuat</td></tr>
+            <tr><td><span class="status-badge s400">400</span></td><td>Bad Request — validasi gagal, input salah, atau saldo tidak mencukupi</td></tr>
+            <tr><td><span class="status-badge s401">401</span></td><td>Unauthorized — token tidak ada, format salah, atau sudah expired</td></tr>
+            <tr><td><span class="status-badge s403">403</span></td><td>Forbidden — user bukan anggota grup atau bukan owner</td></tr>
+            <tr><td><span class="status-badge s404">404</span></td><td>Not Found — resource tidak ditemukan</td></tr>
+            <tr><td><span class="status-badge s500">500</span></td><td>Internal Server Error — error dari Supabase atau server</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ──────────── PAGINATION ──────────── -->
     <div class="doc-section" id="pagination">
-      <div class="section-title">Conventions</div>
-      <h2 class="section-h2">Pagination & Filtering</h2>
-
+      <div class="section-eyebrow">Conventions</div>
+      <h2 class="section-h2">Pagination &amp; Filtering</h2>
       <div class="info-box">
-        <strong>Sistem pagination berbasis offset.</strong> Query param <code>page</code> (default: 1) dan <code>limit</code> (default bervariasi per endpoint, max 100) mengontrol jumlah data yang dikembalikan. Data selalu diurutkan berdasarkan <code>created_at</code> dengan arah yang dikontrol param <code>sort</code>.
+        <strong>Sistem pagination berbasis offset.</strong> Query param <code>page</code> (default: 1) dan <code>limit</code> (default bervariasi per endpoint, max 100) mengontrol jumlah data. Data diurutkan berdasarkan <code>created_at</code> dengan arah yang dikontrol param <code>sort</code>.
       </div>
-
-      <table>
-        <thead><tr><th>Param</th><th>Tipe</th><th>Default</th><th>Max</th><th>Keterangan</th></tr></thead>
-        <tbody>
-          <tr><td><code>page</code></td><td>integer</td><td>1</td><td>—</td><td>Nomor halaman, minimum 1</td></tr>
-          <tr><td><code>limit</code></td><td>integer</td><td>10 / 20</td><td>100</td><td>Savings: default 10 · Transactions & Shared: default 20</td></tr>
-          <tr><td><code>sort</code></td><td>enum</td><td>desc</td><td>—</td><td>Urutan berdasarkan <code>created_at</code>. Nilai: <code>asc</code> atau <code>desc</code></td></tr>
-          <tr><td><code>search</code></td><td>string</td><td>—</td><td>—</td><td>Pencarian case-insensitive (ilike) pada nama/deskripsi</td></tr>
-        </tbody>
-      </table>
-
-      <div class="code-block" style="margin-top:16px">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Param</th><th>Tipe</th><th>Default</th><th>Max</th><th>Keterangan</th></tr></thead>
+          <tbody>
+            <tr><td><code>page</code></td><td>integer</td><td>1</td><td>—</td><td>Nomor halaman, minimum 1</td></tr>
+            <tr><td><code>limit</code></td><td>integer</td><td>10 / 20</td><td>100</td><td>Savings: 10 · Transactions &amp; Shared: 20</td></tr>
+            <tr><td><code>sort</code></td><td>enum</td><td>desc</td><td>—</td><td>Urutan <code>created_at</code>. Nilai: <code>asc</code> atau <code>desc</code></td></tr>
+            <tr><td><code>search</code></td><td>string</td><td>—</td><td>—</td><td>Pencarian case-insensitive (ilike) pada nama/deskripsi</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="margin-top:14px">
         <div class="code-label">Struktur pagination dalam respons</div>
         <pre>{
   <span class="key">"pagination"</span>: {
-    <span class="key">"total"</span>: <span class="num">42</span>,         <span class="comment">// total record keseluruhan</span>
-    <span class="key">"page"</span>: <span class="num">1</span>,          <span class="comment">// halaman sekarang</span>
-    <span class="key">"limit"</span>: <span class="num">10</span>,         <span class="comment">// jumlah per halaman</span>
-    <span class="key">"totalPages"</span>: <span class="num">5</span>    <span class="comment">// total halaman (min 1)</span>
+    <span class="key">"total"</span>:      <span class="num">42</span>,  <span class="cmt">// total record keseluruhan</span>
+    <span class="key">"page"</span>:       <span class="num">1</span>,   <span class="cmt">// halaman sekarang</span>
+    <span class="key">"limit"</span>:      <span class="num">10</span>,  <span class="cmt">// jumlah per halaman</span>
+    <span class="key">"totalPages"</span>: <span class="num">5</span>   <span class="cmt">// total halaman (min 1)</span>
   }
 }</pre>
       </div>
@@ -739,9 +1099,9 @@
 
     <!-- ══════════════════ AUTH ══════════════════ -->
     <div class="doc-section">
-      <div class="section-title">Authentication</div>
+      <div class="section-eyebrow">Authentication</div>
       <h2 class="section-h2">Auth Endpoints</h2>
-      <p class="section-desc">Manajemen sesi pengguna berbasis Supabase Auth. Menggunakan email/password dengan JWT access token + refresh token.</p>
+      <p class="section-desc">Manajemen sesi pengguna berbasis Supabase Auth. Email/password dengan JWT access token + refresh token.</p>
 
       <!-- POST /auth/register -->
       <div class="endpoint" id="auth-register">
@@ -754,43 +1114,38 @@
         </div>
         <div class="endpoint-body">
           <h4>Request Body</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
             <tbody>
               <tr><td><code>email</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Format email valid</td></tr>
               <tr><td><code>password</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Minimal 8 karakter</td></tr>
             </tbody>
-          </table>
-
+          </table></div>
           <h4>Contoh Request</h4>
-          <div class="code-block">
-            <div class="code-label">application/json</div>
-            <pre>{
-  <span class="key">"email"</span>: <span class="str">"budi@example.com"</span>,
+          <div class="code-block"><div class="code-label">application/json</div>
+          <pre>{
+  <span class="key">"email"</span>:    <span class="str">"budi@example.com"</span>,
   <span class="key">"password"</span>: <span class="str">"rahasia123"</span>
-}</pre>
-          </div>
-
+}</pre></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">201 Created</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">201 Created</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Registrasi berhasil! Silakan cek email Anda untuk verifikasi."</span>,
   <span class="key">"data"</span>: {
     <span class="key">"user"</span>: {
-      <span class="key">"id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-      <span class="key">"email"</span>: <span class="str">"budi@example.com"</span>,
+      <span class="key">"id"</span>:                 <span class="str">"a1b2c3d4-..."</span>,
+      <span class="key">"email"</span>:             <span class="str">"budi@example.com"</span>,
       <span class="key">"email_confirmed_at"</span>: <span class="null">null</span>
     },
-    <span class="key">"session"</span>: <span class="null">null</span>  <span class="comment">// null hingga email dikonfirmasi</span>
+    <span class="key">"session"</span>: <span class="null">null</span>  <span class="cmt">// null hingga email dikonfirmasi</span>
   }
-}</pre>
-          </div>
-
+}</pre></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s201">201</span><div class="response-desc">Registrasi berhasil. Email verifikasi dikirim oleh Supabase.</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal (email tidak valid / password terlalu pendek) atau email sudah terdaftar di Supabase.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s201">201</span><div class="response-desc">Registrasi berhasil. Email verifikasi dikirim oleh Supabase.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal (email tidak valid / password terlalu pendek) atau email sudah terdaftar.</div></div>
+          </div>
         </div>
       </div>
 
@@ -805,37 +1160,35 @@
         </div>
         <div class="endpoint-body">
           <h4>Request Body</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
             <tbody>
               <tr><td><code>email</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Format email valid</td></tr>
               <tr><td><code>password</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Tidak boleh kosong</td></tr>
             </tbody>
-          </table>
-
+          </table></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Login sukses!"</span>,
   <span class="key">"data"</span>: {
-    <span class="key">"token"</span>: <span class="str">"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."</span>,        <span class="comment">// access_token</span>
+    <span class="key">"token"</span>:         <span class="str">"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."</span>,
     <span class="key">"refresh_token"</span>: <span class="str">"v1.JpA3z9..."</span>,
     <span class="key">"user"</span>: {
-      <span class="key">"id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-      <span class="key">"email"</span>: <span class="str">"budi@example.com"</span>,
+      <span class="key">"id"</span>:            <span class="str">"a1b2c3d4-..."</span>,
+      <span class="key">"email"</span>:         <span class="str">"budi@example.com"</span>,
       <span class="key">"user_metadata"</span>: { <span class="key">"name"</span>: <span class="str">"Budi"</span> },
-      <span class="key">"app_metadata"</span>: { <span class="key">"role"</span>: <span class="str">"user"</span> }
+      <span class="key">"app_metadata"</span>:  { <span class="key">"role"</span>: <span class="str">"user"</span> }
     }
   }
-}</pre>
-          </div>
-
+}</pre></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Login berhasil. Simpan <code>token</code> (access token) dan <code>refresh_token</code> di client.</div></div>
-          <div class="response-row"><span class="status-badge s401">401</span><div class="response-desc">Email atau password salah.</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi body gagal.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Login berhasil. Simpan <code>token</code> (access token) dan <code>refresh_token</code> di client.</div></div>
+            <div class="response-row"><span class="status-badge s401">401</span><div class="response-desc">Email atau password salah.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi body gagal.</div></div>
+          </div>
         </div>
       </div>
 
@@ -850,29 +1203,27 @@
         </div>
         <div class="endpoint-body">
           <h4>Request Body</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
             <tbody>
               <tr><td><code>refresh_token</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Tidak boleh kosong</td></tr>
             </tbody>
-          </table>
-
+          </table></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Token berhasil diperbarui"</span>,
   <span class="key">"data"</span>: {
-    <span class="key">"access_token"</span>: <span class="str">"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."</span>,
+    <span class="key">"access_token"</span>:  <span class="str">"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."</span>,
     <span class="key">"refresh_token"</span>: <span class="str">"v1.newRefreshToken..."</span>
   }
-}</pre>
-          </div>
-
+}</pre></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Token baru berhasil diterbitkan. Update kedua token di client.</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Refresh token tidak valid atau sudah expired.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Token baru berhasil diterbitkan. Update kedua token di client.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Refresh token tidak valid atau sudah expired.</div></div>
+          </div>
         </div>
       </div>
 
@@ -883,14 +1234,16 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/auth/logout</div>
             <div class="endpoint-summary">Logout dan invalidasi sesi</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <div class="info-box">Tidak memerlukan body. Token di-invalidasi di sisi Supabase. Client wajib menghapus token dari storage lokal setelah menerima respons sukses.</div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Logout berhasil. Hapus token dari client.</div></div>
-          <div class="response-row"><span class="status-badge s401">401</span><div class="response-desc">Token tidak ditemukan atau tidak valid.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Logout berhasil. Hapus token dari storage client.</div></div>
+            <div class="response-row"><span class="status-badge s401">401</span><div class="response-desc">Token tidak ditemukan atau tidak valid.</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -899,9 +1252,9 @@
 
     <!-- ══════════════════ PROFILE ══════════════════ -->
     <div class="doc-section">
-      <div class="section-title">Profile</div>
+      <div class="section-eyebrow">Profile</div>
       <h2 class="section-h2">Profile Endpoints</h2>
-      <p class="section-desc">Pengelolaan data profil pengguna yang tersimpan di Supabase Auth <code>user_metadata</code>. Semua endpoint memerlukan autentikasi.</p>
+      <p class="section-desc">Pengelolaan data profil pengguna yang tersimpan di Supabase Auth <code class="inline-code">user_metadata</code>. Semua endpoint memerlukan autentikasi.</p>
 
       <!-- GET /profile -->
       <div class="endpoint" id="profile-get">
@@ -910,28 +1263,26 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/profile</div>
             <div class="endpoint-summary">Ambil profil user yang sedang login</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Profil user berhasil diambil."</span>,
   <span class="key">"data"</span>: {
     <span class="key">"user"</span>: {
-      <span class="key">"id"</span>: <span class="str">"a1b2c3d4-e5f6-..."</span>,
-      <span class="key">"email"</span>: <span class="str">"budi@example.com"</span>,
-      <span class="key">"name"</span>: <span class="str">"Budi Santoso"</span>,         <span class="comment">// dari user_metadata.name</span>
-      <span class="key">"username"</span>: <span class="str">"budisantoso"</span>,        <span class="comment">// dari user_metadata.username</span>
-      <span class="key">"avatar"</span>: <span class="str">"https://example.com/avatar.jpg"</span>,  <span class="comment">// dari user_metadata.picture</span>
-      <span class="key">"role"</span>: <span class="str">"user"</span>                 <span class="comment">// dari app_metadata.role</span>
+      <span class="key">"id"</span>:       <span class="str">"a1b2c3d4-e5f6-..."</span>,
+      <span class="key">"email"</span>:    <span class="str">"budi@example.com"</span>,
+      <span class="key">"name"</span>:     <span class="str">"Budi Santoso"</span>,    <span class="cmt">// dari user_metadata.name</span>
+      <span class="key">"username"</span>: <span class="str">"budisantoso"</span>,     <span class="cmt">// dari user_metadata.username</span>
+      <span class="key">"avatar"</span>:   <span class="str">"https://..."</span>,       <span class="cmt">// dari user_metadata.picture</span>
+      <span class="key">"role"</span>:     <span class="str">"user"</span>             <span class="cmt">// dari app_metadata.role</span>
     }
   }
-}</pre>
-          </div>
+}</pre></div>
         </div>
       </div>
 
@@ -942,38 +1293,24 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/profile</div>
             <div class="endpoint-summary">Update profil user (name, username, avatar)</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <div class="warn-box"><strong>Catatan:</strong> Minimal satu field harus disertakan. Mengirim body kosong akan mengembalikan error validasi.</div>
-
+          <div class="warn-box"><strong>Perhatian:</strong> Minimal satu field harus disertakan. Body kosong mengembalikan error validasi.</div>
           <h4>Request Body (semua opsional, min 1)</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Aturan</th><th>Keterangan</th></tr></thead>
             <tbody>
-              <tr><td><code>name</code></td><td>string</td><td>Min 1 karakter (setelah trim)</td><td>Nama lengkap, disimpan di <code>user_metadata.name</code></td></tr>
-              <tr><td><code>username</code></td><td>string</td><td>Min 1 karakter (setelah trim)</td><td>Username, disimpan di <code>user_metadata.username</code></td></tr>
-              <tr><td><code>avatar</code></td><td>string (URL)</td><td>Harus URL valid</td><td>URL foto profil, disimpan di <code>user_metadata.picture</code></td></tr>
+              <tr><td><code>name</code></td><td>string</td><td>Min 1 karakter (setelah trim)</td><td>Disimpan di <code>user_metadata.name</code></td></tr>
+              <tr><td><code>username</code></td><td>string</td><td>Min 1 karakter (setelah trim)</td><td>Disimpan di <code>user_metadata.username</code></td></tr>
+              <tr><td><code>avatar</code></td><td>string (URL)</td><td>Harus URL valid</td><td>Disimpan di <code>user_metadata.picture</code></td></tr>
             </tbody>
-          </table>
-
-          <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
-  <span class="key">"success"</span>: <span class="bool">true</span>,
-  <span class="key">"message"</span>: <span class="str">"Profil berhasil diperbarui."</span>,
-  <span class="key">"data"</span>: {
-    <span class="key">"user"</span>: {
-      <span class="key">"id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-      <span class="key">"email"</span>: <span class="str">"budi@example.com"</span>,
-      <span class="key">"name"</span>: <span class="str">"Budi Santoso"</span>,
-      <span class="key">"avatar"</span>: <span class="str">"https://example.com/avatar.jpg"</span>,
-      <span class="key">"username"</span>: <span class="str">"budisantoso"</span>
-    }
-  }
-}</pre>
+          </table></div>
+          <h4>Kemungkinan Respons</h4>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Profil berhasil diperbarui. Data terbaru dikembalikan di <code>data.user</code>.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal atau body kosong.</div></div>
           </div>
         </div>
       </div>
@@ -985,25 +1322,25 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/profile/password</div>
             <div class="endpoint-summary">Ganti password</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <div class="info-box">Verifikasi password lama dilakukan dengan <code>signInWithPassword</code> sebelum password baru di-set. Jika password lama salah, request ditolak dengan 401.</div>
-
           <h4>Request Body</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
             <tbody>
               <tr><td><code>old_password</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Tidak boleh kosong</td></tr>
               <tr><td><code>new_password</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Minimal 8 karakter</td></tr>
             </tbody>
-          </table>
-
+          </table></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Password berhasil diubah. Client disarankan login ulang dengan password baru.</div></div>
-          <div class="response-row"><span class="status-badge s401">401</span><div class="response-desc">Password lama salah.</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal atau error Supabase saat update password.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Password berhasil diubah. Disarankan login ulang dengan password baru.</div></div>
+            <div class="response-row"><span class="status-badge s401">401</span><div class="response-desc">Password lama salah.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal atau error Supabase saat update password.</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1012,7 +1349,7 @@
 
     <!-- ══════════════════ SAVINGS ══════════════════ -->
     <div class="doc-section">
-      <div class="section-title">Savings</div>
+      <div class="section-eyebrow">Savings</div>
       <h2 class="section-h2">Savings Goal Endpoints</h2>
       <p class="section-desc">CRUD untuk target tabungan pribadi. Setiap user hanya bisa mengakses tabungannya sendiri. Tabel: <span class="inline-code">savings_goals</span>.</p>
 
@@ -1023,47 +1360,35 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/savings</div>
             <div class="endpoint-summary">Buat target tabungan baru</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Request Body</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
             <tbody>
-              <tr><td><code>name</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Min 1 karakter (setelah trim). Tidak boleh hanya whitespace.</td></tr>
-              <tr><td><code>target_amount</code></td><td>number</td><td><span class="req">✓ Wajib</span></td><td>Harus positif (> 0)</td></tr>
+              <tr><td><code>name</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Min 1 karakter setelah trim. Tidak boleh hanya whitespace.</td></tr>
+              <tr><td><code>target_amount</code></td><td>number</td><td><span class="req">✓ Wajib</span></td><td>Harus positif (&gt; 0)</td></tr>
             </tbody>
-          </table>
-
-          <h4>Contoh Request</h4>
-          <div class="code-block">
-            <div class="code-label">application/json</div>
-            <pre>{
-  <span class="key">"name"</span>: <span class="str">"Dana Liburan Bali"</span>,
-  <span class="key">"target_amount"</span>: <span class="num">5000000</span>
-}</pre>
-          </div>
-
+          </table></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">201 Created</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">201 Created</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Target tabungan berhasil dibuat!"</span>,
   <span class="key">"data"</span>: {
     <span class="key">"savings"</span>: {
-      <span class="key">"id"</span>: <span class="str">"550e8400-e29b-41d4-a716-446655440000"</span>,
-      <span class="key">"user_id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-      <span class="key">"name"</span>: <span class="str">"Dana Liburan Bali"</span>,
-      <span class="key">"target_amount"</span>: <span class="num">5000000</span>,
-      <span class="key">"current_amount"</span>: <span class="num">0</span>,        <span class="comment">// selalu 0 saat dibuat</span>
-      <span class="key">"created_at"</span>: <span class="str">"2025-01-01T00:00:00Z"</span>,
-      <span class="key">"updated_at"</span>: <span class="str">"2025-01-01T00:00:00Z"</span>
+      <span class="key">"id"</span>:             <span class="str">"550e8400-e29b-41d4-a716-446655440000"</span>,
+      <span class="key">"user_id"</span>:        <span class="str">"a1b2c3d4-..."</span>,
+      <span class="key">"name"</span>:           <span class="str">"Dana Liburan Bali"</span>,
+      <span class="key">"target_amount"</span>:  <span class="num">5000000</span>,
+      <span class="key">"current_amount"</span>: <span class="num">0</span>,  <span class="cmt">// selalu 0 saat dibuat</span>
+      <span class="key">"created_at"</span>:     <span class="str">"2025-01-01T00:00:00Z"</span>,
+      <span class="key">"updated_at"</span>:     <span class="str">"2025-01-01T00:00:00Z"</span>
     }
   }
-}</pre>
-          </div>
+}</pre></div>
         </div>
       </div>
 
@@ -1073,50 +1398,44 @@
           <div class="endpoint-method m-get">GET</div>
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/savings</div>
-            <div class="endpoint-summary">Ambil daftar semua target tabungan milik user (paginasi)</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-summary">Daftar semua target tabungan milik user (paginasi)</div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Query Parameters</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Param</th><th>Tipe</th><th>Default</th><th>Keterangan</th></tr></thead>
             <tbody>
               <tr><td><code>page</code></td><td>integer</td><td>1</td><td>Nomor halaman (min 1)</td></tr>
-              <tr><td><code>limit</code></td><td>integer</td><td>10</td><td>Item per halaman (min 1, max 100)</td></tr>
+              <tr><td><code>limit</code></td><td>integer</td><td>10</td><td>Item per halaman (max 100)</td></tr>
               <tr><td><code>sort</code></td><td>asc | desc</td><td>desc</td><td>Urutan berdasarkan <code>created_at</code></td></tr>
-              <tr><td><code>search</code></td><td>string</td><td>—</td><td>Pencarian nama tabungan (case-insensitive, ilike)</td></tr>
-              <tr><td><code>keyword</code></td><td>string</td><td>—</td><td>Alias untuk <code>search</code>, jika keduanya ada maka <code>search</code> diprioritaskan</td></tr>
+              <tr><td><code>search</code></td><td>string</td><td>—</td><td>Pencarian nama tabungan (ilike)</td></tr>
+              <tr><td><code>keyword</code></td><td>string</td><td>—</td><td>Alias untuk <code>search</code>; <code>search</code> diprioritaskan jika keduanya ada</td></tr>
             </tbody>
-          </table>
-
+          </table></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Data tabungan berhasil diambil."</span>,
   <span class="key">"data"</span>: {
     <span class="key">"savings"</span>: [
       {
-        <span class="key">"id"</span>: <span class="str">"550e8400-..."</span>,
-        <span class="key">"user_id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-        <span class="key">"name"</span>: <span class="str">"Dana Liburan Bali"</span>,
-        <span class="key">"target_amount"</span>: <span class="num">5000000</span>,
+        <span class="key">"id"</span>:             <span class="str">"550e8400-..."</span>,
+        <span class="key">"user_id"</span>:        <span class="str">"a1b2c3d4-..."</span>,
+        <span class="key">"name"</span>:           <span class="str">"Dana Liburan Bali"</span>,
+        <span class="key">"target_amount"</span>:  <span class="num">5000000</span>,
         <span class="key">"current_amount"</span>: <span class="num">1500000</span>,
-        <span class="key">"created_at"</span>: <span class="str">"2025-01-01T00:00:00Z"</span>,
-        <span class="key">"updated_at"</span>: <span class="str">"2025-01-15T00:00:00Z"</span>
+        <span class="key">"created_at"</span>:     <span class="str">"2025-01-01T00:00:00Z"</span>,
+        <span class="key">"updated_at"</span>:     <span class="str">"2025-01-15T00:00:00Z"</span>
       }
     ],
     <span class="key">"pagination"</span>: {
-      <span class="key">"total"</span>: <span class="num">5</span>,
-      <span class="key">"page"</span>: <span class="num">1</span>,
-      <span class="key">"limit"</span>: <span class="num">10</span>,
-      <span class="key">"totalPages"</span>: <span class="num">1</span>
+      <span class="key">"total"</span>: <span class="num">5</span>, <span class="key">"page"</span>: <span class="num">1</span>, <span class="key">"limit"</span>: <span class="num">10</span>, <span class="key">"totalPages"</span>: <span class="num">1</span>
     }
   }
-}</pre>
-          </div>
+}</pre></div>
         </div>
       </div>
 
@@ -1125,23 +1444,23 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-get">GET</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/savings/<span style="color:var(--accent2)">:id</span></div>
-            <div class="endpoint-summary">Ambil detail satu target tabungan berdasarkan ID</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/savings/<span class="param">:id</span></div>
+            <div class="endpoint-summary">Detail satu target tabungan berdasarkan ID</div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Path Parameter</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Param</th><th>Tipe</th><th>Keterangan</th></tr></thead>
-            <tbody>
-              <tr><td><code>id</code></td><td>UUID</td><td>ID tabungan. Harus format UUID v4 yang valid.</td></tr>
-            </tbody>
-          </table>
+            <tbody><tr><td><code>id</code></td><td>UUID</td><td>ID tabungan. Harus format UUID v4 yang valid.</td></tr></tbody>
+          </table></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Data tabungan ditemukan dan dikembalikan dalam field <code>data.savings</code>.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Tabungan tidak ditemukan (tidak ada atau milik user lain).</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">ID bukan format UUID yang valid.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Data tabungan ditemukan, dikembalikan di <code>data.savings</code>.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Tabungan tidak ditemukan (tidak ada atau milik user lain).</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">ID bukan format UUID yang valid.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1150,21 +1469,14 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-get">GET</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/savings/<span style="color:var(--accent2)">:id</span>/transactions</div>
-            <div class="endpoint-summary">Ambil semua transaksi dari tabungan tertentu</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/savings/<span class="param">:id</span>/transactions</div>
+            <div class="endpoint-summary">Semua transaksi dari tabungan tertentu</div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <h4>Path Parameter</h4>
-          <table>
-            <thead><tr><th>Param</th><th>Tipe</th><th>Keterangan</th></tr></thead>
-            <tbody>
-              <tr><td><code>id</code></td><td>UUID</td><td>ID tabungan yang ingin dilihat transaksinya</td></tr>
-            </tbody>
-          </table>
           <h4>Query Parameters</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Param</th><th>Tipe</th><th>Default</th><th>Keterangan</th></tr></thead>
             <tbody>
               <tr><td><code>page</code></td><td>integer</td><td>1</td><td>Nomor halaman</td></tr>
@@ -1172,10 +1484,12 @@
               <tr><td><code>sort</code></td><td>asc | desc</td><td>desc</td><td>Urutan berdasarkan <code>created_at</code></td></tr>
               <tr><td><code>type</code></td><td>deposit | withdrawal</td><td>—</td><td>Filter berdasarkan tipe transaksi</td></tr>
             </tbody>
-          </table>
+          </table></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Daftar transaksi tabungan tersebut dengan paginasi.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Tabungan tidak ditemukan atau bukan milik user.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Daftar transaksi dengan paginasi.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Tabungan tidak ditemukan atau bukan milik user.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1184,26 +1498,27 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-put">PUT</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/savings/<span style="color:var(--accent2)">:id</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/savings/<span class="param">:id</span></div>
             <div class="endpoint-summary">Update nama atau target amount tabungan</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <div class="warn-box"><strong>Catatan:</strong> Minimal satu field harus disertakan. <code>current_amount</code> tidak bisa diubah langsung dari sini — hanya bisa berubah via transaksi.</div>
-
+          <div class="warn-box"><strong>Catatan:</strong> Minimal satu field harus disertakan. <code>current_amount</code> tidak bisa diubah langsung — hanya bisa berubah via transaksi.</div>
           <h4>Request Body (semua opsional, min 1)</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Aturan</th></tr></thead>
             <tbody>
               <tr><td><code>name</code></td><td>string</td><td>Min 1 karakter (setelah trim)</td></tr>
-              <tr><td><code>target_amount</code></td><td>number</td><td>Harus positif (> 0)</td></tr>
+              <tr><td><code>target_amount</code></td><td>number</td><td>Harus positif (&gt; 0)</td></tr>
             </tbody>
-          </table>
+          </table></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Tabungan berhasil diperbarui, data terbaru dikembalikan di <code>data.savings</code>.</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal atau tidak ada field yang dikirim.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Tabungan tidak ditemukan.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Tabungan berhasil diperbarui, data terbaru di <code>data.savings</code>.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal atau tidak ada field yang dikirim.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Tabungan tidak ditemukan.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1212,16 +1527,18 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-delete">DELETE</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/savings/<span style="color:var(--accent2)">:id</span></div>
-            <div class="endpoint-summary">Hapus target tabungan</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/savings/<span class="param">:id</span></div>
+            <div class="endpoint-summary">Hapus target tabungan (permanen)</div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <div class="warn-box"><strong>Perhatian:</strong> Penghapusan bersifat permanen. Tidak ada soft delete. Pastikan data transaksi terkait sudah dipahami konsekuensinya.</div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Tabungan berhasil dihapus. Field <code>data</code> bernilai <code>null</code>.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Tabungan tidak ditemukan atau bukan milik user.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Tabungan berhasil dihapus. Field <code>data</code> bernilai <code>null</code>.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Tabungan tidak ditemukan atau bukan milik user.</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1230,12 +1547,12 @@
 
     <!-- ══════════════════ TRANSACTIONS ══════════════════ -->
     <div class="doc-section">
-      <div class="section-title">Transactions</div>
+      <div class="section-eyebrow">Transactions</div>
       <h2 class="section-h2">Transaction Endpoints</h2>
-      <p class="section-desc">Pencatatan transaksi (setoran & penarikan) untuk tabungan pribadi. Setiap transaksi secara otomatis memperbarui <code>current_amount</code> di tabel <span class="inline-code">savings_goals</span>. Tabel: <span class="inline-code">transactions</span>.</p>
+      <p class="section-desc">Pencatatan transaksi (setoran &amp; penarikan) untuk tabungan pribadi. Setiap transaksi otomatis memperbarui <code class="inline-code">current_amount</code> di tabel <span class="inline-code">savings_goals</span>.</p>
 
       <div class="info-box">
-        <strong>Saldo otomatis:</strong> Saat transaksi dibuat, dihapus, atau diubah, saldo (<code>current_amount</code>) pada savings goal terkait otomatis disesuaikan. Penarikan yang melebihi saldo akan ditolak dengan error <strong>400</strong>.
+        <strong>Saldo otomatis:</strong> Saat transaksi dibuat, diubah, atau dihapus, saldo (<code>current_amount</code>) pada savings goal terkait otomatis disesuaikan. Penarikan melebihi saldo ditolak dengan error <strong>400</strong>.
       </div>
 
       <!-- POST /transactions -->
@@ -1245,57 +1562,44 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/transactions</div>
             <div class="endpoint-summary">Catat transaksi baru (deposit atau withdrawal)</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Request Body</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
             <tbody>
-              <tr><td><code>savings_id</code></td><td>UUID</td><td><span class="req">✓ Wajib</span></td><td>ID tabungan target yang valid & milik user</td></tr>
-              <tr><td><code>type</code></td><td>enum</td><td><span class="req">✓ Wajib</span></td><td>Nilai: <code>deposit</code> atau <code>withdrawal</code></td></tr>
-              <tr><td><code>amount</code></td><td>number</td><td><span class="req">✓ Wajib</span></td><td>Harus positif (> 0)</td></tr>
-              <tr><td><code>description</code></td><td>string</td><td><span class="opt">Opsional</span></td><td>Maks 255 karakter. Default kosong <code>""</code> jika tidak diisi.</td></tr>
+              <tr><td><code>savings_id</code></td><td>UUID</td><td><span class="req">✓ Wajib</span></td><td>ID tabungan yang valid &amp; milik user</td></tr>
+              <tr><td><code>type</code></td><td>enum</td><td><span class="req">✓ Wajib</span></td><td><code>deposit</code> atau <code>withdrawal</code></td></tr>
+              <tr><td><code>amount</code></td><td>number</td><td><span class="req">✓ Wajib</span></td><td>Harus positif (&gt; 0)</td></tr>
+              <tr><td><code>description</code></td><td>string</td><td><span class="opt">Opsional</span></td><td>Maks 255 karakter. Default <code>""</code> jika tidak diisi.</td></tr>
             </tbody>
-          </table>
-
-          <h4>Contoh Request</h4>
-          <div class="code-block">
-            <div class="code-label">application/json</div>
-            <pre>{
-  <span class="key">"savings_id"</span>: <span class="str">"550e8400-e29b-41d4-a716-446655440000"</span>,
-  <span class="key">"type"</span>: <span class="str">"deposit"</span>,
-  <span class="key">"amount"</span>: <span class="num">500000</span>,
-  <span class="key">"description"</span>: <span class="str">"Tabungan bulan Januari"</span>
-}</pre>
-          </div>
-
+          </table></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">201 Created</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">201 Created</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Transaksi berhasil dicatat."</span>,
   <span class="key">"data"</span>: {
-    <span class="key">"saldo_sekarang"</span>: <span class="num">2000000</span>,  <span class="comment">// current_amount savings setelah transaksi</span>
+    <span class="key">"saldo_sekarang"</span>:  <span class="num">2000000</span>,  <span class="cmt">// current_amount setelah transaksi</span>
     <span class="key">"detail_transaksi"</span>: {
-      <span class="key">"id"</span>: <span class="str">"txn-uuid-..."</span>,
-      <span class="key">"user_id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-      <span class="key">"savings_id"</span>: <span class="str">"550e8400-..."</span>,
-      <span class="key">"type"</span>: <span class="str">"deposit"</span>,
-      <span class="key">"amount"</span>: <span class="num">500000</span>,
+      <span class="key">"id"</span>:          <span class="str">"txn-uuid-..."</span>,
+      <span class="key">"user_id"</span>:     <span class="str">"a1b2c3d4-..."</span>,
+      <span class="key">"savings_id"</span>:  <span class="str">"550e8400-..."</span>,
+      <span class="key">"type"</span>:        <span class="str">"deposit"</span>,
+      <span class="key">"amount"</span>:      <span class="num">500000</span>,
       <span class="key">"description"</span>: <span class="str">"Tabungan bulan Januari"</span>,
-      <span class="key">"created_at"</span>: <span class="str">"2025-01-15T10:00:00Z"</span>
+      <span class="key">"created_at"</span>:  <span class="str">"2025-01-15T10:00:00Z"</span>
     }
   }
-}</pre>
-          </div>
-
+}</pre></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s201">201</span><div class="response-desc">Transaksi berhasil dicatat dan saldo diperbarui.</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal <strong>atau</strong> saldo tidak mencukupi untuk withdrawal.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Savings goal dengan <code>savings_id</code> tidak ditemukan.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s201">201</span><div class="response-desc">Transaksi berhasil dicatat dan saldo diperbarui.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal <strong>atau</strong> saldo tidak mencukupi untuk withdrawal.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Savings goal dengan <code>savings_id</code> tidak ditemukan.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1305,13 +1609,13 @@
           <div class="endpoint-method m-get">GET</div>
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/transactions</div>
-            <div class="endpoint-summary">Ambil semua transaksi milik user dengan filter & paginasi</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-summary">Semua transaksi milik user dengan filter &amp; paginasi</div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Query Parameters</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Param</th><th>Tipe</th><th>Default</th><th>Keterangan</th></tr></thead>
             <tbody>
               <tr><td><code>page</code></td><td>integer</td><td>1</td><td>Nomor halaman</td></tr>
@@ -1319,22 +1623,9 @@
               <tr><td><code>sort</code></td><td>asc | desc</td><td>desc</td><td>Urutan berdasarkan <code>created_at</code></td></tr>
               <tr><td><code>type</code></td><td>deposit | withdrawal</td><td>—</td><td>Filter jenis transaksi</td></tr>
               <tr><td><code>savings_id</code></td><td>UUID</td><td>—</td><td>Filter transaksi dari savings tertentu</td></tr>
-              <tr><td><code>search</code></td><td>string</td><td>—</td><td>Pencarian di field <code>description</code> (case-insensitive)</td></tr>
+              <tr><td><code>search</code></td><td>string</td><td>—</td><td>Pencarian di field <code>description</code> (ilike)</td></tr>
             </tbody>
-          </table>
-
-          <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
-  <span class="key">"success"</span>: <span class="bool">true</span>,
-  <span class="key">"message"</span>: <span class="str">"Riwayat transaksi berhasil diambil."</span>,
-  <span class="key">"data"</span>: {
-    <span class="key">"transactions"</span>: [ <span class="comment">/* array transaksi */</span> ],
-    <span class="key">"pagination"</span>: { <span class="key">"total"</span>: <span class="num">30</span>, <span class="key">"page"</span>: <span class="num">1</span>, <span class="key">"limit"</span>: <span class="num">20</span>, <span class="key">"totalPages"</span>: <span class="num">2</span> }
-  }
-}</pre>
-          </div>
+          </table></div>
         </div>
       </div>
 
@@ -1343,22 +1634,17 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-get">GET</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/transactions/<span style="color:var(--accent2)">:id</span></div>
-            <div class="endpoint-summary">Ambil detail satu transaksi berdasarkan ID</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/transactions/<span class="param">:id</span></div>
+            <div class="endpoint-summary">Detail satu transaksi berdasarkan ID</div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <h4>Path Parameter</h4>
-          <table>
-            <thead><tr><th>Param</th><th>Tipe</th><th>Keterangan</th></tr></thead>
-            <tbody>
-              <tr><td><code>id</code></td><td>UUID</td><td>ID transaksi yang ingin dilihat</td></tr>
-            </tbody>
-          </table>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Detail transaksi dikembalikan di <code>data.transaction</code>.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Transaksi tidak ditemukan atau bukan milik user.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Detail transaksi dikembalikan di <code>data.transaction</code>.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Transaksi tidak ditemukan atau bukan milik user.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1367,37 +1653,32 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-patch">PATCH</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/transactions/<span style="color:var(--accent2)">:id</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/transactions/<span class="param">:id</span></div>
             <div class="endpoint-summary">Update transaksi (rollback saldo lama, apply saldo baru)</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <div class="info-box">
-            <strong>Mekanisme update saldo:</strong> Server melakukan rollback saldo dari transaksi lama, lalu menerapkan transaksi baru. Jika saldo akhir negatif, request ditolak. Minimal satu field harus dikirim.
-          </div>
+          <div class="info-box"><strong>Mekanisme update saldo:</strong> Server melakukan rollback saldo dari transaksi lama, lalu menerapkan transaksi baru. Jika saldo akhir negatif, request ditolak. Minimal satu field harus dikirim.</div>
           <h4>Request Body (semua opsional, min 1)</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Aturan</th></tr></thead>
             <tbody>
               <tr><td><code>type</code></td><td>deposit | withdrawal</td><td>Ubah jenis transaksi</td></tr>
-              <tr><td><code>amount</code></td><td>number</td><td>Harus positif (> 0)</td></tr>
+              <tr><td><code>amount</code></td><td>number</td><td>Harus positif (&gt; 0)</td></tr>
               <tr><td><code>description</code></td><td>string</td><td>Maks 255 karakter</td></tr>
             </tbody>
-          </table>
-
+          </table></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Transaksi berhasil diperbarui."</span>,
   <span class="key">"data"</span>: {
-    <span class="key">"saldo_sekarang"</span>: <span class="num">1800000</span>,
-    <span class="key">"detail_transaksi"</span>: { <span class="comment">/* data transaksi terbaru */</span> }
+    <span class="key">"saldo_sekarang"</span>:  <span class="num">1800000</span>,
+    <span class="key">"detail_transaksi"</span>: { <span class="cmt">/* data transaksi terbaru */</span> }
   }
-}</pre>
-          </div>
+}</pre></div>
         </div>
       </div>
 
@@ -1406,24 +1687,22 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-delete">DELETE</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/transactions/<span style="color:var(--accent2)">:id</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/transactions/<span class="param">:id</span></div>
             <div class="endpoint-summary">Hapus transaksi dan kembalikan saldo</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <div class="info-box">Saat transaksi dihapus, saldo savings goal otomatis di-rollback. Deposit yang dihapus akan mengurangi saldo, withdrawal yang dihapus akan menambah saldo.</div>
+          <div class="info-box">Saat transaksi dihapus, saldo savings goal otomatis di-rollback. Deposit yang dihapus mengurangi saldo; withdrawal yang dihapus menambah saldo.</div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Transaksi berhasil dihapus."</span>,
   <span class="key">"data"</span>: {
-    <span class="key">"saldo_sekarang"</span>: <span class="num">1500000</span>  <span class="comment">// saldo setelah rollback</span>
+    <span class="key">"saldo_sekarang"</span>: <span class="num">1500000</span>  <span class="cmt">// saldo setelah rollback</span>
   }
-}</pre>
-          </div>
+}</pre></div>
         </div>
       </div>
     </div>
@@ -1432,9 +1711,9 @@
 
     <!-- ══════════════════ DASHBOARD ══════════════════ -->
     <div class="doc-section">
-      <div class="section-title">Dashboard</div>
+      <div class="section-eyebrow">Dashboard</div>
       <h2 class="section-h2">Dashboard Endpoints</h2>
-      <p class="section-desc">Endpoint agregasi data untuk tampilan ringkasan pengguna. Semua kalkulasi dilakukan di server menggunakan data dari <span class="inline-code">savings_goals</span> dan <span class="inline-code">transactions</span>.</p>
+      <p class="section-desc">Endpoint agregasi data untuk tampilan ringkasan. Semua kalkulasi dilakukan di server menggunakan data dari <span class="inline-code">savings_goals</span> dan <span class="inline-code">transactions</span>.</p>
 
       <!-- GET /dashboard -->
       <div class="endpoint" id="dash-overview">
@@ -1443,34 +1722,30 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/dashboard</div>
             <div class="endpoint-summary">Ringkasan total saldo, progress, dan statistik transaksi</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Dashboard berhasil diambil."</span>,
   <span class="key">"data"</span>: {
     <span class="key">"dashboard"</span>: {
-      <span class="key">"total_savings"</span>: <span class="num">3500000</span>,        <span class="comment">// total saldo dari semua savings</span>
-      <span class="key">"total_target"</span>: <span class="num">10000000</span>,        <span class="comment">// total target dari semua savings</span>
-      <span class="key">"progress"</span>: <span class="num">35</span>,                  <span class="comment">// persentase pencapaian (0–100)</span>
-      <span class="key">"completion_rate"</span>: <span class="num">35</span>,            <span class="comment">// sama dengan progress</span>
-      <span class="key">"remaining_target"</span>: <span class="num">6500000</span>,     <span class="comment">// sisa yang harus ditabung (min 0)</span>
-      <span class="key">"total_transactions"</span>: <span class="num">24</span>,         <span class="comment">// total jumlah transaksi</span>
-      <span class="key">"total_deposit"</span>: <span class="num">5000000</span>,         <span class="comment">// total semua setoran</span>
-      <span class="key">"total_withdrawal"</span>: <span class="num">1500000</span>,      <span class="comment">// total semua penarikan</span>
-      <span class="key">"num_savings_goals"</span>: <span class="num">3</span>            <span class="comment">// jumlah target tabungan aktif</span>
+      <span class="key">"total_savings"</span>:     <span class="num">3500000</span>,  <span class="cmt">// total saldo dari semua savings</span>
+      <span class="key">"total_target"</span>:      <span class="num">10000000</span>, <span class="cmt">// total target dari semua savings</span>
+      <span class="key">"progress"</span>:          <span class="num">35</span>,       <span class="cmt">// persentase pencapaian (0–100)</span>
+      <span class="key">"completion_rate"</span>:   <span class="num">35</span>,       <span class="cmt">// sama dengan progress</span>
+      <span class="key">"remaining_target"</span>:  <span class="num">6500000</span>, <span class="cmt">// sisa yang harus ditabung (min 0)</span>
+      <span class="key">"total_transactions"</span>:<span class="num">24</span>,       <span class="cmt">// total jumlah transaksi</span>
+      <span class="key">"total_deposit"</span>:     <span class="num">5000000</span>, <span class="cmt">// total semua setoran</span>
+      <span class="key">"total_withdrawal"</span>:  <span class="num">1500000</span>, <span class="cmt">// total semua penarikan</span>
+      <span class="key">"num_savings_goals"</span>: <span class="num">3</span>        <span class="cmt">// jumlah target tabungan aktif</span>
     }
   }
-}</pre>
-          </div>
-          <div class="info-box" style="margin-top:12px">
-            <strong>Formula:</strong> <code>progress = Math.round((total_savings / total_target) * 100)</code>. Jika tidak ada savings goal, progress bernilai 0.
-          </div>
+}</pre></div>
+          <div class="info-box" style="margin-top:12px"><strong>Formula:</strong> <code>progress = Math.round((total_savings / total_target) * 100)</code>. Jika tidak ada savings goal, progress bernilai 0.</div>
         </div>
       </div>
 
@@ -1481,15 +1756,14 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/dashboard/statistics</div>
             <div class="endpoint-summary">Statistik deposit dan withdrawal per bulan</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <div class="info-box">Data dikelompokkan per bulan dalam format <code>YYYY-MM</code>. Cocok untuk ditampilkan sebagai line chart atau bar chart bulanan.</div>
+          <div class="info-box">Data dikelompokkan per bulan dalam format <code>YYYY-MM</code>. Cocok untuk line chart atau bar chart bulanan.</div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Statistik berhasil diambil."</span>,
   <span class="key">"data"</span>: {
@@ -1499,8 +1773,7 @@
       { <span class="key">"month"</span>: <span class="str">"2025-03"</span>, <span class="key">"deposit"</span>: <span class="num">2000000</span>, <span class="key">"withdrawal"</span>: <span class="num">500000</span> }
     ]
   }
-}</pre>
-          </div>
+}</pre></div>
         </div>
       </div>
 
@@ -1511,38 +1784,16 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/dashboard/recent-transactions</div>
             <div class="endpoint-summary">Transaksi terbaru untuk widget ringkasan</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Query Parameters</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Param</th><th>Tipe</th><th>Default</th><th>Keterangan</th></tr></thead>
-            <tbody>
-              <tr><td><code>limit</code></td><td>integer</td><td>5</td><td>Jumlah transaksi yang dikembalikan (min 1). Tidak ada batas atas eksplisit.</td></tr>
-            </tbody>
-          </table>
-
-          <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
-  <span class="key">"success"</span>: <span class="bool">true</span>,
-  <span class="key">"message"</span>: <span class="str">"Riwayat transaksi terbaru berhasil diambil."</span>,
-  <span class="key">"data"</span>: {
-    <span class="key">"recent_transactions"</span>: [
-      {
-        <span class="key">"id"</span>: <span class="str">"txn-uuid-..."</span>,
-        <span class="key">"type"</span>: <span class="str">"deposit"</span>,
-        <span class="key">"amount"</span>: <span class="num">500000</span>,
-        <span class="key">"description"</span>: <span class="str">"Tabungan bulan ini"</span>,
-        <span class="key">"created_at"</span>: <span class="str">"2025-01-20T08:00:00Z"</span>
-      }
-    ]
-  }
-}</pre>
-          </div>
-          <div class="info-box" style="margin-top:12px"><strong>Field yang dikembalikan:</strong> Hanya <code>id</code>, <code>type</code>, <code>amount</code>, <code>description</code>, dan <code>created_at</code> (tidak semua kolom). Diurutkan dari yang terbaru.</div>
+            <tbody><tr><td><code>limit</code></td><td>integer</td><td>5</td><td>Jumlah transaksi yang dikembalikan (min 1)</td></tr></tbody>
+          </table></div>
+          <div class="info-box" style="margin-top:12px"><strong>Field yang dikembalikan:</strong> Hanya <code>id</code>, <code>type</code>, <code>amount</code>, <code>description</code>, dan <code>created_at</code>. Diurutkan dari yang terbaru.</div>
         </div>
       </div>
     </div>
@@ -1551,14 +1802,14 @@
 
     <!-- ══════════════════ SHARED SAVINGS ══════════════════ -->
     <div class="doc-section">
-      <div class="section-title">Shared Savings</div>
+      <div class="section-eyebrow">Shared Savings</div>
       <h2 class="section-h2">Shared Savings Endpoints</h2>
-      <p class="section-desc">Tabungan kolaboratif yang bisa diikuti oleh banyak user. Setiap grup memiliki satu <strong>owner</strong> dan banyak <strong>member</strong>. Bergabung menggunakan <strong>invite code</strong> 8 karakter (hex uppercase). Tabel: <span class="inline-code">shared_savings</span>, <span class="inline-code">shared_members</span>.</p>
+      <p class="section-desc">Tabungan kolaboratif yang bisa diikuti banyak user. Setiap grup punya satu <strong>owner</strong> dan banyak <strong>member</strong>. Bergabung menggunakan <strong>invite code</strong> 8 karakter (hex uppercase). Tabel: <span class="inline-code">shared_savings</span>, <span class="inline-code">shared_members</span>.</p>
 
       <div class="info-box">
-        <strong>Sistem Peran (Role):</strong><br>
-        <code>owner</code> — Pembuat grup. Memiliki akses penuh termasuk update dan delete grup.<br>
-        <code>member</code> — User yang bergabung via invite code. Bisa melihat dan melakukan transaksi, tapi tidak bisa update/delete grup.
+        <strong>Sistem Peran:</strong><br>
+        <code>owner</code> — Pembuat grup. Akses penuh termasuk update dan delete grup.<br>
+        <code>member</code> — Bergabung via invite code. Bisa melihat dan melakukan transaksi, tapi tidak bisa update/delete grup.
       </div>
 
       <!-- POST /shared-savings -->
@@ -1568,48 +1819,45 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/shared-savings</div>
             <div class="endpoint-summary">Buat grup tabungan bersama baru</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Request Body</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
             <tbody>
               <tr><td><code>name</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Min 1 karakter (setelah trim)</td></tr>
-              <tr><td><code>target_amount</code></td><td>number</td><td><span class="req">✓ Wajib</span></td><td>Harus positif (> 0). Bisa angka atau string angka (coerce)</td></tr>
-              <tr><td><code>description</code></td><td>string</td><td><span class="opt">Opsional</span></td><td>Maks 255 karakter. Default <code>""</code> jika tidak diisi.</td></tr>
+              <tr><td><code>target_amount</code></td><td>number</td><td><span class="req">✓ Wajib</span></td><td>Harus positif (&gt; 0). Bisa angka atau string angka (coerce)</td></tr>
+              <tr><td><code>description</code></td><td>string</td><td><span class="opt">Opsional</span></td><td>Maks 255 karakter. Default <code>""</code>.</td></tr>
             </tbody>
-          </table>
-
+          </table></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">201 Created</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">201 Created</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Tabungan bersama berhasil dibuat."</span>,
   <span class="key">"data"</span>: {
     <span class="key">"shared_savings"</span>: {
-      <span class="key">"id"</span>: <span class="str">"ss-uuid-..."</span>,
-      <span class="key">"owner_id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-      <span class="key">"name"</span>: <span class="str">"Dana Reuni SMA"</span>,
-      <span class="key">"description"</span>: <span class="str">"Untuk acara reuni 10 tahun"</span>,
-      <span class="key">"target_amount"</span>: <span class="num">10000000</span>,
+      <span class="key">"id"</span>:             <span class="str">"ss-uuid-..."</span>,
+      <span class="key">"owner_id"</span>:       <span class="str">"a1b2c3d4-..."</span>,
+      <span class="key">"name"</span>:           <span class="str">"Dana Reuni SMA"</span>,
+      <span class="key">"description"</span>:   <span class="str">"Untuk acara reuni 10 tahun"</span>,
+      <span class="key">"target_amount"</span>:  <span class="num">10000000</span>,
       <span class="key">"current_amount"</span>: <span class="num">0</span>,
-      <span class="key">"invite_code"</span>: <span class="str">"A3F8C21B"</span>,  <span class="comment">// 8 karakter hex uppercase</span>
-      <span class="key">"status"</span>: <span class="str">"active"</span>,
-      <span class="key">"created_at"</span>: <span class="str">"2025-01-01T00:00:00Z"</span>
+      <span class="key">"invite_code"</span>:    <span class="str">"A3F8C21B"</span>,  <span class="cmt">// 8 karakter hex uppercase</span>
+      <span class="key">"status"</span>:         <span class="str">"active"</span>,
+      <span class="key">"created_at"</span>:     <span class="str">"2025-01-01T00:00:00Z"</span>
     },
     <span class="key">"member"</span>: {
-      <span class="key">"id"</span>: <span class="str">"member-uuid-..."</span>,
-      <span class="key">"shared_savings_id"</span>: <span class="str">"ss-uuid-..."</span>,
-      <span class="key">"user_id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-      <span class="key">"role"</span>: <span class="str">"owner"</span>
+      <span class="key">"id"</span>:               <span class="str">"member-uuid-..."</span>,
+      <span class="key">"shared_savings_id"</span>:<span class="str">"ss-uuid-..."</span>,
+      <span class="key">"user_id"</span>:          <span class="str">"a1b2c3d4-..."</span>,
+      <span class="key">"role"</span>:             <span class="str">"owner"</span>
     }
   }
-}</pre>
-          </div>
-          <div class="info-box" style="margin-top:12px"><strong>Invite Code:</strong> Dibuat otomatis menggunakan <code>crypto.randomBytes(4).toString('hex').toUpperCase()</code>. Unik dijamin dengan retry hingga 5 kali jika ada collision. Bagikan kode ini ke anggota yang ingin bergabung.</div>
+}</pre></div>
+          <div class="info-box" style="margin-top:12px"><strong>Invite Code:</strong> Dibuat otomatis via <code>crypto.randomBytes(4).toString('hex').toUpperCase()</code>. Unik, dengan retry hingga 5 kali jika ada collision.</div>
         </div>
       </div>
 
@@ -1619,13 +1867,13 @@
           <div class="endpoint-method m-get">GET</div>
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/shared-savings</div>
-            <div class="endpoint-summary">Daftar grup yang user ikuti (sebagai owner maupun member)</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-summary">Daftar grup yang user ikuti (owner maupun member)</div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Query Parameters</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Param</th><th>Tipe</th><th>Default</th><th>Keterangan</th></tr></thead>
             <tbody>
               <tr><td><code>page</code></td><td>integer</td><td>1</td><td>Nomor halaman</td></tr>
@@ -1633,7 +1881,7 @@
               <tr><td><code>sort</code></td><td>asc | desc</td><td>desc</td><td>Urutan berdasarkan <code>created_at</code></td></tr>
               <tr><td><code>search</code></td><td>string</td><td>—</td><td>Pencarian di <code>name</code> ATAU <code>description</code></td></tr>
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
 
@@ -1642,17 +1890,19 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-get">GET</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span style="color:var(--accent2)">:id</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span class="param">:id</span></div>
             <div class="endpoint-summary">Detail grup tabungan bersama</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <div class="info-box">User harus menjadi anggota (owner atau member) dari grup ini. Jika bukan anggota, dikembalikan error <strong>403</strong>.</div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Data grup dikembalikan di <code>data.shared_savings</code>.</div></div>
-          <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan anggota grup ini.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Grup tidak ditemukan.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Data grup dikembalikan di <code>data.shared_savings</code>.</div></div>
+            <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan anggota grup ini.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Grup tidak ditemukan.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1661,25 +1911,27 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-patch">PATCH</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span style="color:var(--accent2)">:id</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span class="param">:id</span></div>
             <div class="endpoint-summary">Update grup tabungan bersama</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span><span class="tag tag-owner">👑 Owner Only</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span><span class="tag tag-owner">👑 Owner Only</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Request Body (semua opsional, min 1)</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Aturan</th></tr></thead>
             <tbody>
               <tr><td><code>name</code></td><td>string</td><td>Min 1 karakter (setelah trim)</td></tr>
               <tr><td><code>description</code></td><td>string</td><td>Maks 255 karakter</td></tr>
-              <tr><td><code>target_amount</code></td><td>number</td><td>Harus positif (> 0)</td></tr>
+              <tr><td><code>target_amount</code></td><td>number</td><td>Harus positif (&gt; 0)</td></tr>
             </tbody>
-          </table>
+          </table></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Grup berhasil diperbarui.</div></div>
-          <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan owner grup ini.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Grup tidak ditemukan.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Grup berhasil diperbarui.</div></div>
+            <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan owner grup ini.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Grup tidak ditemukan.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1688,16 +1940,18 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-delete">DELETE</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span style="color:var(--accent2)">:id</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span class="param">:id</span></div>
             <div class="endpoint-summary">Hapus seluruh grup tabungan bersama (cascade)</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span><span class="tag tag-owner">👑 Owner Only</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span><span class="tag tag-owner">👑 Owner Only</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <div class="warn-box"><strong>Cascade Delete:</strong> Menghapus grup juga menghapus semua <code>shared_transactions</code> dan semua <code>shared_members</code> yang terkait secara berurutan. Operasi ini tidak dapat dibatalkan.</div>
+          <div class="warn-box"><strong>Cascade Delete:</strong> Menghapus grup juga menghapus semua <code>shared_transactions</code> dan semua <code>shared_members</code> terkait secara berurutan. Operasi tidak dapat dibatalkan.</div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Grup dan semua data terkait berhasil dihapus.</div></div>
-          <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan owner grup ini.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Grup dan semua data terkait berhasil dihapus.</div></div>
+            <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan owner grup ini.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1708,40 +1962,36 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/shared-savings/join</div>
             <div class="endpoint-summary">Bergabung ke grup menggunakan invite code</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Request Body</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
-            <tbody>
-              <tr><td><code>invite_code</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Tidak boleh kosong. Kode 8 karakter hex dari owner.</td></tr>
-            </tbody>
-          </table>
-
+            <tbody><tr><td><code>invite_code</code></td><td>string</td><td><span class="req">✓ Wajib</span></td><td>Tidak boleh kosong. Kode 8 karakter hex dari owner.</td></tr></tbody>
+          </table></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Berhasil bergabung ke tabungan bersama."</span>,
   <span class="key">"data"</span>: {
-    <span class="key">"shared_savings"</span>: { <span class="comment">/* detail grup */</span> },
+    <span class="key">"shared_savings"</span>: { <span class="cmt">/* detail grup */</span> },
     <span class="key">"member"</span>: {
-      <span class="key">"id"</span>: <span class="str">"member-uuid-..."</span>,
-      <span class="key">"shared_savings_id"</span>: <span class="str">"ss-uuid-..."</span>,
-      <span class="key">"user_id"</span>: <span class="str">"user-uuid-..."</span>,
-      <span class="key">"role"</span>: <span class="str">"member"</span>
+      <span class="key">"id"</span>:               <span class="str">"member-uuid-..."</span>,
+      <span class="key">"shared_savings_id"</span>:<span class="str">"ss-uuid-..."</span>,
+      <span class="key">"user_id"</span>:          <span class="str">"user-uuid-..."</span>,
+      <span class="key">"role"</span>:             <span class="str">"member"</span>
     }
   }
-}</pre>
-          </div>
-
+}</pre></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Berhasil bergabung sebagai <code>member</code>.</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">User sudah terdaftar sebagai anggota grup ini.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Invite code tidak ditemukan / tidak valid.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Berhasil bergabung sebagai <code>member</code>.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">User sudah terdaftar sebagai anggota grup ini.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Invite code tidak ditemukan / tidak valid.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1750,39 +2000,37 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-get">GET</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span style="color:var(--accent2)">:id</span>/members</div>
+            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span class="param">:id</span>/members</div>
             <div class="endpoint-summary">Daftar anggota grup tabungan bersama</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Daftar member tabungan bersama berhasil diambil."</span>,
   <span class="key">"data"</span>: {
     <span class="key">"members"</span>: [
       {
-        <span class="key">"id"</span>: <span class="str">"member-uuid-..."</span>,
-        <span class="key">"user_id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-        <span class="key">"name"</span>: <span class="str">"Budi Santoso"</span>,   <span class="comment">// dari tabel profiles, fallback ke user_id</span>
-        <span class="key">"role"</span>: <span class="str">"owner"</span>,
+        <span class="key">"id"</span>:        <span class="str">"member-uuid-..."</span>,
+        <span class="key">"user_id"</span>:   <span class="str">"a1b2c3d4-..."</span>,
+        <span class="key">"name"</span>:      <span class="str">"Budi Santoso"</span>,  <span class="cmt">// dari tabel profiles, fallback ke user_id</span>
+        <span class="key">"role"</span>:      <span class="str">"owner"</span>,
         <span class="key">"joined_at"</span>: <span class="str">"2025-01-01T00:00:00Z"</span>
       },
       {
-        <span class="key">"id"</span>: <span class="str">"member-uuid-..."</span>,
-        <span class="key">"user_id"</span>: <span class="str">"e5f6g7h8-..."</span>,
-        <span class="key">"name"</span>: <span class="str">"Siti Rahayu"</span>,
-        <span class="key">"role"</span>: <span class="str">"member"</span>,
+        <span class="key">"id"</span>:        <span class="str">"member-uuid-..."</span>,
+        <span class="key">"user_id"</span>:   <span class="str">"e5f6g7h8-..."</span>,
+        <span class="key">"name"</span>:      <span class="str">"Siti Rahayu"</span>,
+        <span class="key">"role"</span>:      <span class="str">"member"</span>,
         <span class="key">"joined_at"</span>: <span class="str">"2025-01-05T08:00:00Z"</span>
       }
     ]
   }
-}</pre>
-          </div>
-          <div class="info-box" style="margin-top:12px">Nama member diambil dari tabel <code>profiles</code>. Jika tidak ditemukan atau gagal, nilai <code>name</code> di-fallback ke <code>user_id</code>. Diurutkan berdasarkan <code>joined_at</code> ascending.</div>
+}</pre></div>
+          <div class="info-box" style="margin-top:12px">Nama member dari tabel <code>profiles</code>. Jika tidak ditemukan, fallback ke <code>user_id</code>. Diurutkan berdasarkan <code>joined_at</code> ascending.</div>
         </div>
       </div>
 
@@ -1791,42 +2039,40 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-get">GET</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span style="color:var(--accent2)">:id</span>/statistics</div>
+            <div class="endpoint-path"><span class="base">/api</span>/shared-savings/<span class="param">:id</span>/statistics</div>
             <div class="endpoint-summary">Statistik kontribusi per anggota dalam grup</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Statistik tabungan bersama berhasil diambil."</span>,
   <span class="key">"data"</span>: {
-    <span class="key">"target"</span>: <span class="num">10000000</span>,
-    <span class="key">"current"</span>: <span class="num">3500000</span>,
-    <span class="key">"progress"</span>: <span class="num">35</span>,              <span class="comment">// persentase (0–100)</span>
-    <span class="key">"remaining"</span>: <span class="num">6500000</span>,         <span class="comment">// sisa target (min 0)</span>
+    <span class="key">"target"</span>:    <span class="num">10000000</span>,
+    <span class="key">"current"</span>:   <span class="num">3500000</span>,
+    <span class="key">"progress"</span>:  <span class="num">35</span>,        <span class="cmt">// persentase (0–100)</span>
+    <span class="key">"remaining"</span>: <span class="num">6500000</span>,  <span class="cmt">// sisa target (min 0)</span>
     <span class="key">"members"</span>: [
       {
-        <span class="key">"user_id"</span>: <span class="str">"a1b2c3d4-..."</span>,
-        <span class="key">"name"</span>: <span class="str">"Budi Santoso"</span>,
-        <span class="key">"role"</span>: <span class="str">"owner"</span>,
-        <span class="key">"total_deposit"</span>: <span class="num">2000000</span>,
+        <span class="key">"user_id"</span>:          <span class="str">"a1b2c3d4-..."</span>,
+        <span class="key">"name"</span>:             <span class="str">"Budi Santoso"</span>,
+        <span class="key">"role"</span>:             <span class="str">"owner"</span>,
+        <span class="key">"total_deposit"</span>:    <span class="num">2000000</span>,
         <span class="key">"total_withdrawal"</span>: <span class="num">0</span>
       },
       {
-        <span class="key">"user_id"</span>: <span class="str">"e5f6g7h8-..."</span>,
-        <span class="key">"name"</span>: <span class="str">"Siti Rahayu"</span>,
-        <span class="key">"role"</span>: <span class="str">"member"</span>,
-        <span class="key">"total_deposit"</span>: <span class="num">1500000</span>,
+        <span class="key">"user_id"</span>:          <span class="str">"e5f6g7h8-..."</span>,
+        <span class="key">"name"</span>:             <span class="str">"Siti Rahayu"</span>,
+        <span class="key">"role"</span>:             <span class="str">"member"</span>,
+        <span class="key">"total_deposit"</span>:    <span class="num">1500000</span>,
         <span class="key">"total_withdrawal"</span>: <span class="num">0</span>
       }
     ]
   }
-}</pre>
-          </div>
+}</pre></div>
         </div>
       </div>
     </div>
@@ -1835,9 +2081,9 @@
 
     <!-- ══════════════════ SHARED TRANSACTIONS ══════════════════ -->
     <div class="doc-section">
-      <div class="section-title">Shared Transactions</div>
+      <div class="section-eyebrow">Shared Transactions</div>
       <h2 class="section-h2">Shared Transaction Endpoints</h2>
-      <p class="section-desc">Pencatatan transaksi untuk grup tabungan bersama. Semua anggota (owner & member) bisa membuat dan mengelola transaksi. Saldo grup otomatis diperbarui. Tabel: <span class="inline-code">shared_transactions</span>.</p>
+      <p class="section-desc">Pencatatan transaksi untuk grup tabungan bersama. Semua anggota (owner &amp; member) bisa membuat dan mengelola transaksi. Saldo grup otomatis diperbarui. Tabel: <span class="inline-code">shared_transactions</span>.</p>
 
       <!-- POST /shared-transactions -->
       <div class="endpoint" id="st-create">
@@ -1846,47 +2092,45 @@
           <div class="endpoint-info">
             <div class="endpoint-path"><span class="base">/api</span>/shared-transactions</div>
             <div class="endpoint-summary">Catat transaksi baru untuk grup tabungan bersama</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
           <h4>Request Body</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
             <tbody>
-              <tr><td><code>shared_savings_id</code></td><td>UUID</td><td><span class="req">✓ Wajib</span></td><td>ID grup yang valid, user harus menjadi anggota</td></tr>
-              <tr><td><code>type</code></td><td>enum</td><td><span class="req">✓ Wajib</span></td><td>Nilai: <code>deposit</code> atau <code>withdrawal</code></td></tr>
-              <tr><td><code>amount</code></td><td>number</td><td><span class="req">✓ Wajib</span></td><td>Harus positif (> 0). Bisa string angka (coerce)</td></tr>
+              <tr><td><code>shared_savings_id</code></td><td>UUID</td><td><span class="req">✓ Wajib</span></td><td>ID grup yang valid; user harus menjadi anggota</td></tr>
+              <tr><td><code>type</code></td><td>enum</td><td><span class="req">✓ Wajib</span></td><td><code>deposit</code> atau <code>withdrawal</code></td></tr>
+              <tr><td><code>amount</code></td><td>number</td><td><span class="req">✓ Wajib</span></td><td>Harus positif (&gt; 0). Bisa string angka (coerce)</td></tr>
               <tr><td><code>description</code></td><td>string</td><td><span class="opt">Opsional</span></td><td>Maks 255 karakter. Default <code>""</code>.</td></tr>
             </tbody>
-          </table>
-
+          </table></div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">201 Created</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">201 Created</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Transaksi tabungan bersama berhasil dicatat."</span>,
   <span class="key">"data"</span>: {
     <span class="key">"shared_transaction"</span>: {
-      <span class="key">"id"</span>: <span class="str">"st-uuid-..."</span>,
-      <span class="key">"shared_savings_id"</span>: <span class="str">"ss-uuid-..."</span>,
-      <span class="key">"user_id"</span>: <span class="str">"a1b2c3d4-..."</span>,  <span class="comment">// user yang melakukan transaksi</span>
-      <span class="key">"type"</span>: <span class="str">"deposit"</span>,
-      <span class="key">"amount"</span>: <span class="num">500000</span>,
-      <span class="key">"description"</span>: <span class="str">"Iuran bulan Januari"</span>,
-      <span class="key">"created_at"</span>: <span class="str">"2025-01-10T09:00:00Z"</span>
+      <span class="key">"id"</span>:               <span class="str">"st-uuid-..."</span>,
+      <span class="key">"shared_savings_id"</span>:<span class="str">"ss-uuid-..."</span>,
+      <span class="key">"user_id"</span>:          <span class="str">"a1b2c3d4-..."</span>,  <span class="cmt">// user yang melakukan transaksi</span>
+      <span class="key">"type"</span>:             <span class="str">"deposit"</span>,
+      <span class="key">"amount"</span>:           <span class="num">500000</span>,
+      <span class="key">"description"</span>:     <span class="str">"Iuran bulan Januari"</span>,
+      <span class="key">"created_at"</span>:      <span class="str">"2025-01-10T09:00:00Z"</span>
     },
     <span class="key">"saldo_sekarang"</span>: <span class="num">3500000</span>
   }
-}</pre>
-          </div>
-
+}</pre></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s201">201</span><div class="response-desc">Transaksi berhasil dan saldo grup diperbarui.</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal atau saldo grup tidak mencukupi untuk withdrawal.</div></div>
-          <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan anggota grup.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Grup tidak ditemukan.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s201">201</span><div class="response-desc">Transaksi berhasil dan saldo grup diperbarui.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Validasi gagal atau saldo grup tidak mencukupi untuk withdrawal.</div></div>
+            <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan anggota grup.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Grup tidak ditemukan.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1895,27 +2139,29 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-patch">PATCH</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/shared-transactions/<span style="color:var(--accent2)">:id</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/shared-transactions/<span class="param">:id</span></div>
             <div class="endpoint-summary">Update transaksi bersama</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <div class="info-box">Verifikasi bahwa user adalah anggota grup (bukan hanya pemilik transaksi). Mekanisme rollback dan reapply saldo sama seperti endpoint <code>PATCH /transactions/:id</code>.</div>
+          <div class="info-box">Verifikasi bahwa user adalah anggota grup (bukan hanya pemilik transaksi). Mekanisme rollback dan reapply saldo sama seperti <code>PATCH /transactions/:id</code>.</div>
           <h4>Request Body (semua opsional, min 1)</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead><tr><th>Field</th><th>Tipe</th><th>Aturan</th></tr></thead>
             <tbody>
               <tr><td><code>type</code></td><td>deposit | withdrawal</td><td>Ubah jenis transaksi</td></tr>
-              <tr><td><code>amount</code></td><td>number</td><td>Harus positif (> 0)</td></tr>
+              <tr><td><code>amount</code></td><td>number</td><td>Harus positif (&gt; 0)</td></tr>
               <tr><td><code>description</code></td><td>string</td><td>Maks 255 karakter</td></tr>
             </tbody>
-          </table>
+          </table></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Transaksi berhasil diperbarui. Respons berisi <code>shared_transaction</code> dan <code>saldo_sekarang</code>.</div></div>
-          <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Saldo tidak mencukupi atau tidak ada field yang dikirim.</div></div>
-          <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan anggota grup transaksi ini.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Transaksi tidak ditemukan.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Berisi <code>shared_transaction</code> dan <code>saldo_sekarang</code>.</div></div>
+            <div class="response-row"><span class="status-badge s400">400</span><div class="response-desc">Saldo tidak mencukupi atau tidak ada field yang dikirim.</div></div>
+            <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan anggota grup transaksi ini.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Transaksi tidak ditemukan.</div></div>
+          </div>
         </div>
       </div>
 
@@ -1924,85 +2170,182 @@
         <div class="endpoint-header">
           <div class="endpoint-method m-delete">DELETE</div>
           <div class="endpoint-info">
-            <div class="endpoint-path"><span class="base">/api</span>/shared-transactions/<span style="color:var(--accent2)">:id</span></div>
+            <div class="endpoint-path"><span class="base">/api</span>/shared-transactions/<span class="param">:id</span></div>
             <div class="endpoint-summary">Hapus transaksi bersama dan kembalikan saldo</div>
-            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Requires Auth</span></div>
+            <div class="endpoint-tags"><span class="tag tag-auth">🔒 Auth Required</span></div>
           </div>
         </div>
         <div class="endpoint-body">
-          <div class="info-box">Saldo grup otomatis di-rollback saat transaksi dihapus. User harus menjadi anggota grup, tapi tidak harus pemilik transaksi.</div>
+          <div class="info-box">Saldo grup otomatis di-rollback. User harus menjadi anggota grup, tapi tidak harus pemilik transaksi tersebut.</div>
           <h4>Contoh Respons</h4>
-          <div class="code-block">
-            <div class="code-label">200 OK</div>
-            <pre>{
+          <div class="code-block"><div class="code-label">200 OK</div>
+          <pre>{
   <span class="key">"success"</span>: <span class="bool">true</span>,
   <span class="key">"message"</span>: <span class="str">"Transaksi tabungan bersama berhasil dihapus."</span>,
   <span class="key">"data"</span>: {
     <span class="key">"saldo_sekarang"</span>: <span class="num">3000000</span>
   }
-}</pre>
-          </div>
+}</pre></div>
           <h4>Kemungkinan Respons</h4>
-          <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Transaksi dihapus, saldo grup di-rollback.</div></div>
-          <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan anggota grup transaksi ini.</div></div>
-          <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Transaksi tidak ditemukan.</div></div>
+          <div class="response-list">
+            <div class="response-row"><span class="status-badge s200">200</span><div class="response-desc">Transaksi dihapus, saldo grup di-rollback.</div></div>
+            <div class="response-row"><span class="status-badge s403">403</span><div class="response-desc">User bukan anggota grup transaksi ini.</div></div>
+            <div class="response-row"><span class="status-badge s404">404</span><div class="response-desc">Transaksi tidak ditemukan.</div></div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- ──────────── QUICK REFERENCE ──────────── -->
+    <!-- ══════════════════ QUICK REFERENCE ══════════════════ -->
     <div class="doc-section">
-      <div class="section-title">Quick Reference</div>
+      <div class="section-eyebrow">Quick Reference</div>
       <h2 class="section-h2">Ringkasan Semua Endpoint</h2>
 
-      <table>
-        <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Deskripsi</th></tr></thead>
-        <tbody>
-          <tr><td><span class="status-badge" style="background:rgba(99,102,241,.15);color:#818cf8;">POST</span></td><td><code>/api/auth/register</code></td><td>—</td><td>Registrasi akun baru</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(99,102,241,.15);color:#818cf8;">POST</span></td><td><code>/api/auth/login</code></td><td>—</td><td>Login, dapatkan token</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(99,102,241,.15);color:#818cf8;">POST</span></td><td><code>/api/auth/refresh</code></td><td>—</td><td>Refresh access token</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(99,102,241,.15);color:#818cf8;">POST</span></td><td><code>/api/auth/logout</code></td><td>✓</td><td>Logout, invalidasi sesi</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/profile</code></td><td>✓</td><td>Ambil profil user</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;">PUT</span></td><td><code>/api/profile</code></td><td>✓</td><td>Update profil</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;">PUT</span></td><td><code>/api/profile/password</code></td><td>✓</td><td>Ganti password</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(99,102,241,.15);color:#818cf8;">POST</span></td><td><code>/api/savings</code></td><td>✓</td><td>Buat savings goal</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/savings</code></td><td>✓</td><td>List savings goals</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/savings/:id</code></td><td>✓</td><td>Detail savings goal</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/savings/:id/transactions</code></td><td>✓</td><td>Transaksi per savings</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;">PUT</span></td><td><code>/api/savings/:id</code></td><td>✓</td><td>Update savings goal</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(239,68,68,.15);color:#ef4444;">DEL</span></td><td><code>/api/savings/:id</code></td><td>✓</td><td>Hapus savings goal</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(99,102,241,.15);color:#818cf8;">POST</span></td><td><code>/api/transactions</code></td><td>✓</td><td>Buat transaksi</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/transactions</code></td><td>✓</td><td>List transaksi</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/transactions/:id</code></td><td>✓</td><td>Detail transaksi</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(249,115,22,.15);color:#f97316;">PATCH</span></td><td><code>/api/transactions/:id</code></td><td>✓</td><td>Update transaksi</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(239,68,68,.15);color:#ef4444;">DEL</span></td><td><code>/api/transactions/:id</code></td><td>✓</td><td>Hapus transaksi</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/dashboard</code></td><td>✓</td><td>Ringkasan dashboard</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/dashboard/statistics</code></td><td>✓</td><td>Statistik per bulan</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/dashboard/recent-transactions</code></td><td>✓</td><td>Transaksi terbaru</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(99,102,241,.15);color:#818cf8;">POST</span></td><td><code>/api/shared-savings</code></td><td>✓</td><td>Buat grup tabungan</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/shared-savings</code></td><td>✓</td><td>List grup yang diikuti</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/shared-savings/:id</code></td><td>✓</td><td>Detail grup</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(249,115,22,.15);color:#f97316;">PATCH</span></td><td><code>/api/shared-savings/:id</code></td><td>✓ Owner</td><td>Update grup</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(239,68,68,.15);color:#ef4444;">DEL</span></td><td><code>/api/shared-savings/:id</code></td><td>✓ Owner</td><td>Hapus grup (cascade)</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(99,102,241,.15);color:#818cf8;">POST</span></td><td><code>/api/shared-savings/join</code></td><td>✓</td><td>Bergabung via invite code</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/shared-savings/:id/members</code></td><td>✓</td><td>Daftar anggota</td></tr>
-          <tr><td><span class="status-badge s200">GET</span></td><td><code>/api/shared-savings/:id/statistics</code></td><td>✓</td><td>Statistik kontribusi</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(99,102,241,.15);color:#818cf8;">POST</span></td><td><code>/api/shared-transactions</code></td><td>✓</td><td>Buat transaksi bersama</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(249,115,22,.15);color:#f97316;">PATCH</span></td><td><code>/api/shared-transactions/:id</code></td><td>✓</td><td>Update transaksi bersama</td></tr>
-          <tr><td><span class="status-badge" style="background:rgba(239,68,68,.15);color:#ef4444;">DEL</span></td><td><code>/api/shared-transactions/:id</code></td><td>✓</td><td>Hapus transaksi bersama</td></tr>
-        </tbody>
-      </table>
+      <div class="quick-ref-wrap">
+        <table class="quick-ref">
+          <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Deskripsi</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mb-post">POST</span></td><td>/api/auth/register</td><td class="auth-check">—</td><td>Registrasi akun baru</td></tr>
+            <tr><td><span class="mb-post">POST</span></td><td>/api/auth/login</td><td class="auth-check">—</td><td>Login, dapatkan token</td></tr>
+            <tr><td><span class="mb-post">POST</span></td><td>/api/auth/refresh</td><td class="auth-check">—</td><td>Refresh access token</td></tr>
+            <tr><td><span class="mb-post">POST</span></td><td>/api/auth/logout</td><td class="auth-check">✓</td><td>Logout, invalidasi sesi</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/profile</td><td class="auth-check">✓</td><td>Ambil profil user</td></tr>
+            <tr><td><span class="mb-put">PUT</span></td><td>/api/profile</td><td class="auth-check">✓</td><td>Update profil</td></tr>
+            <tr><td><span class="mb-put">PUT</span></td><td>/api/profile/password</td><td class="auth-check">✓</td><td>Ganti password</td></tr>
+            <tr><td><span class="mb-post">POST</span></td><td>/api/savings</td><td class="auth-check">✓</td><td>Buat savings goal</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/savings</td><td class="auth-check">✓</td><td>List savings goals</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/savings/:id</td><td class="auth-check">✓</td><td>Detail savings goal</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/savings/:id/transactions</td><td class="auth-check">✓</td><td>Transaksi per savings</td></tr>
+            <tr><td><span class="mb-put">PUT</span></td><td>/api/savings/:id</td><td class="auth-check">✓</td><td>Update savings goal</td></tr>
+            <tr><td><span class="mb-delete">DEL</span></td><td>/api/savings/:id</td><td class="auth-check">✓</td><td>Hapus savings goal</td></tr>
+            <tr><td><span class="mb-post">POST</span></td><td>/api/transactions</td><td class="auth-check">✓</td><td>Buat transaksi</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/transactions</td><td class="auth-check">✓</td><td>List transaksi</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/transactions/:id</td><td class="auth-check">✓</td><td>Detail transaksi</td></tr>
+            <tr><td><span class="mb-patch">PATCH</span></td><td>/api/transactions/:id</td><td class="auth-check">✓</td><td>Update transaksi</td></tr>
+            <tr><td><span class="mb-delete">DEL</span></td><td>/api/transactions/:id</td><td class="auth-check">✓</td><td>Hapus transaksi</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/dashboard</td><td class="auth-check">✓</td><td>Ringkasan dashboard</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/dashboard/statistics</td><td class="auth-check">✓</td><td>Statistik per bulan</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/dashboard/recent-transactions</td><td class="auth-check">✓</td><td>Transaksi terbaru</td></tr>
+            <tr><td><span class="mb-post">POST</span></td><td>/api/shared-savings</td><td class="auth-check">✓</td><td>Buat grup tabungan</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/shared-savings</td><td class="auth-check">✓</td><td>List grup yang diikuti</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/shared-savings/:id</td><td class="auth-check">✓</td><td>Detail grup</td></tr>
+            <tr><td><span class="mb-patch">PATCH</span></td><td>/api/shared-savings/:id</td><td class="auth-owner">✓ Owner</td><td>Update grup</td></tr>
+            <tr><td><span class="mb-delete">DEL</span></td><td>/api/shared-savings/:id</td><td class="auth-owner">✓ Owner</td><td>Hapus grup (cascade)</td></tr>
+            <tr><td><span class="mb-post">POST</span></td><td>/api/shared-savings/join</td><td class="auth-check">✓</td><td>Bergabung via invite code</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/shared-savings/:id/members</td><td class="auth-check">✓</td><td>Daftar anggota</td></tr>
+            <tr><td><span class="mb-get">GET</span></td><td>/api/shared-savings/:id/statistics</td><td class="auth-check">✓</td><td>Statistik kontribusi</td></tr>
+            <tr><td><span class="mb-post">POST</span></td><td>/api/shared-transactions</td><td class="auth-check">✓</td><td>Buat transaksi bersama</td></tr>
+            <tr><td><span class="mb-patch">PATCH</span></td><td>/api/shared-transactions/:id</td><td class="auth-check">✓</td><td>Update transaksi bersama</td></tr>
+            <tr><td><span class="mb-delete">DEL</span></td><td>/api/shared-transactions/:id</td><td class="auth-check">✓</td><td>Hapus transaksi bersama</td></tr>
+          </tbody>
+        </table>
+      </div>
 
-      <div style="margin-top:32px;padding:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg)">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;margin-bottom:12px">Swagger / Postman</div>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">Dokumentasi interaktif (Swagger UI) tersedia di <span class="inline-code">/api-docs</span>. Koleksi Postman tersedia di file <span class="inline-code">backend/Tabunganku.postman_collection.json</span> dalam repository.</p>
+      <div class="footer-note">
+        <div class="footer-icon">📖</div>
+        <div>
+          <div class="footer-label">Swagger &amp; Postman</div>
+          <div class="footer-text">Dokumentasi interaktif (Swagger UI) tersedia di <span class="inline-code">/api-docs</span>. Koleksi Postman tersedia di <span class="inline-code">backend/Tabunganku.postman_collection.json</span> dalam repository.</div>
+        </div>
       </div>
     </div>
 
   </div><!-- /content -->
 </main>
+</div><!-- /layout -->
 
+<script>
+// ─── Theme ───
+const html = document.documentElement;
+const themeToggle = document.getElementById('themeToggle');
+const themeToggle2 = document.getElementById('themeToggle2');
+const themeIcon = document.getElementById('themeIcon');
+const themeIcon2 = document.getElementById('themeIcon2');
+const themeLabel = document.getElementById('themeLabel');
+
+const sunPath = `<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`;
+const moonPath = `<path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>`;
+
+let isDark = true;
+
+function setTheme(dark) {
+  isDark = dark;
+  html.setAttribute('data-theme', dark ? 'dark' : 'light');
+  const path = dark ? sunPath : moonPath;
+  const label = dark ? 'Light' : 'Dark';
+  themeIcon.innerHTML = path;
+  themeIcon2.innerHTML = path;
+  if (themeLabel) themeLabel.textContent = label;
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+}
+
+// Restore saved theme
+const saved = localStorage.getItem('theme');
+if (saved === 'light') setTheme(false);
+
+themeToggle?.addEventListener('click', () => setTheme(!isDark));
+themeToggle2?.addEventListener('click', () => setTheme(!isDark));
+
+// ─── Mobile Nav ───
+const hamburger = document.getElementById('hamburger');
+const mainNav = document.getElementById('mainNav');
+const navOverlay = document.getElementById('navOverlay');
+
+function openNav() {
+  mainNav.classList.add('open');
+  navOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeNav() {
+  mainNav.classList.remove('open');
+  navOverlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+hamburger?.addEventListener('click', openNav);
+navOverlay?.addEventListener('click', closeNav);
+
+// Close nav when a link is clicked (mobile)
+mainNav.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', () => {
+    if (window.innerWidth <= 768) closeNav();
+  });
+});
+
+// ─── Nav Search ───
+const navSearch = document.getElementById('navSearch');
+navSearch?.addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const text = item.textContent.toLowerCase();
+    item.style.display = q && !text.includes(q) ? 'none' : '';
+  });
+  // Show/hide section labels
+  document.querySelectorAll('.nav-section').forEach(sec => {
+    const visible = [...sec.querySelectorAll('.nav-item')].some(i => i.style.display !== 'none');
+    sec.style.display = q && !visible ? 'none' : '';
+  });
+});
+
+// ─── Active Nav on Scroll ───
+const sections = document.querySelectorAll('.doc-section[id], .endpoint[id]');
+const navItems = document.querySelectorAll('.nav-item[href^="#"]');
+
+function setActiveNav() {
+  const scrollY = window.scrollY + 100;
+  let current = '';
+  sections.forEach(sec => {
+    if (sec.offsetTop <= scrollY) current = sec.id;
+  });
+  navItems.forEach(item => {
+    item.classList.toggle('active', item.getAttribute('href') === '#' + current);
+  });
+}
+
+window.addEventListener('scroll', setActiveNav, { passive: true });
+setActiveNav();
+</script>
 </body>
 </html>
